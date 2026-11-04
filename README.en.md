@@ -46,7 +46,6 @@ In a narrow terminal window the bar shortens itself: first it drops the reset ti
 - **Claude Code** — tested on version 2.1.318.
 - **Signed in with a Claude subscription** (Pro or Max). With an API key there are no "5 hours / week" limits.
 - **Where the bar shows:** Claude Code in a terminal — PowerShell, cmd, Git Bash, the VS Code terminal, Windows Terminal, iTerm2 and others — and the Claude desktop app.
-- **System:** Windows 10/11 — the time format and time zone come from the system; macOS and Linux — the time is in the 24-hour format.
 
 ## Installation
 At the Claude Code prompt:
