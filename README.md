@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/IlTsPe/limits-for-claude"><img src="mascot.png" alt="Limits for Claude — маскот: кот в наушниках с часами и календарём" width="50%"></a>
+  <a href="https://github.com/IlTsPe/limits-for-claude"><img src="mascot/mascot-ru.png" alt="Limits for Claude — маскот: кот в наушниках рядом с карточкой расхода токенов" width="50%"></a>
 </p>
 
 <h1 align="center">Limits for Claude</h1>
@@ -42,6 +42,8 @@
 В узком окне терминала полоска сокращается сама: сначала убирает время обновления, а если места всё равно мало — блок недели.
 
 ## Установка
+<img src="mascot/jumping.png" align="right" width="200" alt="Маскот радостно прыгает">
+
 В поле ввода Claude Code:
 
 ```

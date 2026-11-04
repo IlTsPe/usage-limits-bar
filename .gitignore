@@ -4,3 +4,5 @@ tsconfig.json
 *.log
 .DS_Store
 Thumbs.db
+# Исходники и прежние версии маскота (не публикуются)
+mascot/old/

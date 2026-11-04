@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/IlTsPe/limits-for-claude"><img src="mascot.png" alt="Limits for Claude mascot: a cat in headphones with a clock and a calendar" width="50%"></a>
+  <a href="https://github.com/IlTsPe/limits-for-claude"><img src="mascot/mascot-en.png" alt="Limits for Claude mascot: a cat in headphones next to a token usage card" width="50%"></a>
 </p>
 
 <h1 align="center">Limits for Claude</h1>
@@ -42,6 +42,8 @@ The bar updates on its own after every Claude reply. At startup, before the firs
 In a narrow terminal window the bar shortens itself: first it drops the reset time, and if there is still not enough room, the week block.
 
 ## Installation
+<img src="mascot/jumping.png" align="right" width="200" alt="The mascot jumping with joy">
+
 At the Claude Code prompt:
 
 ```
