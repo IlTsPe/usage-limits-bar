@@ -2,7 +2,7 @@
   <a href="https://github.com/IlTsPe/limits-for-claude"><img src="mascot.png" alt="Limits for Claude — маскот: кот в наушниках с часами и календарём" width="100%"></a>
 </p>
 
-<h1 align="center"><a href="https://github.com/IlTsPe/limits-for-claude">Limits for Claude</a></h1>
+<h1 align="center">Limits for Claude</h1>
 
 <p align="center">
   <a href="#о-плагине">О плагине</a> ·
