@@ -1,18 +1,21 @@
-// Скины полоски: символы заполненной и пустой части
+import { STRINGS } from './i18n'
+import type { Lang } from './i18n'
+
+// Скины полоски: символы заполненной и пустой части, название на двух языках
 export type Skin = {
   id: string
-  title: string
+  title: Record<Lang, string>
   filled: string
   empty: string
 }
 
 export const SKINS: readonly Skin[] = [
-  { id: 'line', title: 'толстая линия', filled: '━', empty: '━' },
-  { id: 'thin', title: 'тонкая линия', filled: '─', empty: '─' },
-  { id: 'double', title: 'двойная линия', filled: '═', empty: '═' },
-  { id: 'blocks', title: 'блоки', filled: '█', empty: '░' },
-  { id: 'squares', title: 'квадраты', filled: '■', empty: '■' },
-  { id: 'dots', title: 'точки', filled: '•', empty: '·' },
+  { id: 'line', title: { ru: 'толстая линия', en: 'thick line' }, filled: '━', empty: '━' },
+  { id: 'thin', title: { ru: 'тонкая линия', en: 'thin line' }, filled: '─', empty: '─' },
+  { id: 'double', title: { ru: 'двойная линия', en: 'double line' }, filled: '═', empty: '═' },
+  { id: 'blocks', title: { ru: 'блоки', en: 'blocks' }, filled: '█', empty: '░' },
+  { id: 'squares', title: { ru: 'квадраты', en: 'squares' }, filled: '■', empty: '■' },
+  { id: 'dots', title: { ru: 'точки', en: 'dots' }, filled: '•', empty: '·' },
 ]
 
 export const DEFAULT_SKIN = 'line'
@@ -38,16 +41,12 @@ export const barParts = (percent: number, skin: Skin): [string, string] => {
 }
 
 // Список скинов с превью для ответа команды
-export const skinsList = (currentId: string, percent: number): string => {
+export const skinsList = (currentId: string, percent: number, lang: Lang): string => {
+  const t = STRINGS[lang]
   const rows = SKINS.map((s, i) => {
     const [f, e] = barParts(percent, s)
     const mark = s.id === currentId ? '●' : ' '
-    return `${mark} ${i + 1}  ${f}${e}  ${s.id} — ${s.title}`
+    return `${mark} ${i + 1}  ${f}${e}  ${s.id} — ${s.title[lang]}`
   })
-  return [
-    'Скины полоски:',
-    ...rows,
-    '',
-    'Выбрать: /limits skin <номер или имя>, например /limits skin 4',
-  ].join('\n')
+  return [t.skinsTitle, ...rows, '', t.skinsHint].join('\n')
 }

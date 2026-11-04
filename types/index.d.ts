@@ -30,6 +30,8 @@ declare module 'claude-code' {
       timeFmt: TimeFormat | null
       skin: string
       isNerd: boolean
+      sysLang: 'ru' | 'en'
+      langSetting: 'auto' | 'ru' | 'en'
     }
   }
 }

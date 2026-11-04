@@ -17,7 +17,7 @@ const RATE_LIMITS = [
   { kind: 'seven_day', percentUsed: 36, resetsAt: '2026-11-07T14:00:00Z' },
 ]
 
-const setup = (on: Parameters<Parameters<typeof test>[1]>[1], pattern: string) => {
+const setup = (on: Parameters<Parameters<typeof test>[1]>[1], pattern: string, ui = 'ru-RU') => {
   on('command.register', () => ({ value: { command: 'limits' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: NOW, context: {}, rateLimits: [] } }))
@@ -26,7 +26,7 @@ const setup = (on: Parameters<Parameters<typeof test>[1]>[1], pattern: string) =
   on('clock.now', () => ({ value: NOW }))
   on('clock.every', () => ({ value: { cancel: () => {} } }))
   on('process.run', () => ({
-    value: { exitCode: 0, stdout: `${pattern}\r\n180\r\n`, stderr: '' },
+    value: { exitCode: 0, stdout: `${pattern}\r\n180\r\n${ui}\r\n`, stderr: '' },
   }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
 }
@@ -102,5 +102,46 @@ test('иконки Nerd Font: включение и выключение', async
   await $.command.run({ command: 'limits', args: 'icons off' } as never)
   ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /↕ 15:10/ }))?.text).toContain('↕ 15:10')
+  await ui.unmount()
+})
+
+test('английская Windows: 5h / 7d, 12-часовой формат, Sat', async ($, on) => {
+  setup(on, 'h:mm tt', 'en-US')
+  on('command.run', () => ({ text: 'engine' }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+
+  let ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /first reply/ }))?.text).toBeTruthy()
+  await ui.unmount()
+
+  await measure($)
+  ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /5h/ }))?.text).toContain('5h')
+  expect((await ui.find({ type: 'Text', text: /7d/ }))?.text).toContain('7d')
+  expect((await ui.find({ type: 'Text', text: /↕ 3:10 PM/ }))?.text).toContain('↕ 3:10 PM')
+  expect((await ui.find({ type: 'Text', text: /↕ Sat 5 PM/ }))?.text).toContain('Sat 5 PM')
+  await ui.unmount()
+
+  const list = await $.command.run({ command: 'limits', args: 'skin' } as never)
+  expect(JSON.stringify(list)).toContain('Bar skins')
+  expect(JSON.stringify(list)).toContain('thick line')
+})
+
+test('язык вручную: /limits lang ru|en|auto', async ($, on) => {
+  setup(on, 'H:mm', 'en-US')
+  on('command.run', () => ({ text: 'engine' }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await measure($)
+
+  const ru = await $.command.run({ command: 'limits', args: 'lang ru' } as never)
+  expect(JSON.stringify(ru)).toContain('русский')
+  let ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /5ч/ }))?.text).toContain('5ч')
+  expect((await ui.find({ type: 'Text', text: /↕ сб 17:00/ }))?.text).toContain('сб 17:00')
+  await ui.unmount()
+
+  await $.command.run({ command: 'limits', args: 'lang auto' } as never)
+  ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /↕ Sat 17:00/ }))?.text).toContain('Sat 17:00')
   await ui.unmount()
 })

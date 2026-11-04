@@ -3,11 +3,16 @@ import type { EngineInterface, Register, SessionRateLimit } from 'claude-code'
 
 import type { Limits, TimeFormat, Window } from '../types'
 import { DEFAULT_SKIN, barParts, findSkin, skinById, skinsList } from './skins'
+import { STRINGS, langFromLocale } from './i18n'
+import type { Lang, LangSetting } from './i18n'
 
 const STORE_KEY = 'last-limits'
 const HIDDEN_KEY = 'hidden'
 const SKIN_KEY = 'skin'
 const ICONS_KEY = 'icons'
+const LANG_KEY = 'lang'
+// Последний язык системы — чтобы при запуске сразу показать нужный язык
+const SYS_LANG_KEY = 'sys-lang'
 
 const limits = atom({ plugin: 'usage-limits', key: 'limits' } as const, null, {
   shape: 'limits-1',
@@ -21,6 +26,10 @@ const timeFmt = atom({ plugin: 'usage-limits', key: 'timeFmt' } as const, null)
 const skin = atom({ plugin: 'usage-limits', key: 'skin' } as const, DEFAULT_SKIN)
 // Иконки Nerd Fonts (нужен шрифт Nerd Font в терминале)
 const isNerd = atom({ plugin: 'usage-limits', key: 'isNerd' } as const, false)
+// Язык системы (Windows — региональные настройки, macOS/Linux — LANG)
+const sysLang = atom({ plugin: 'usage-limits', key: 'sysLang' } as const, 'en')
+// Выбор пользователя: auto — по языку системы
+const langSetting = atom({ plugin: 'usage-limits', key: 'langSetting' } as const, 'auto')
 
 // Иконки Font Awesome из Nerd Fonts: часы, календарь, обновление.
 // Только из основной плоскости Unicode (U+E000–U+F8FF): значки выше U+FFFF
@@ -46,14 +55,14 @@ const fromRateLimits = (list: readonly SessionRateLimit[], at: number): Limits |
 const colorOf = (percent: number) =>
   percent >= 80 ? 'error' : percent >= 50 ? 'warning' : 'success'
 
-const WEEKDAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб']
+// Итоговый язык: выбор пользователя или язык системы
+const langOf = (setting: LangSetting, system: Lang): Lang => (setting === 'auto' ? system : setting)
 
-// Часть суток для 12-часового формата: «5 утра», «3 дня»
-const dayPart = (h: number): string =>
-  h < 4 ? 'ночи' : h < 12 ? 'утра' : h < 17 ? 'дня' : 'вечера'
+const isLangSetting = (v: unknown): v is LangSetting => v === 'auto' || v === 'ru' || v === 'en'
 
-// Время сброса в формате пользователя: «5:00», «завтра 05:00», «сб 17:00», «5 утра»
-export const resetText = (resetsAt: number, nowMs: number, fmt: TimeFormat): string => {
+// Время сброса в формате пользователя: «5:00», «завтра 05:00», «сб 17:00», «5 утра» / «tomorrow 5 AM»
+export const resetText = (resetsAt: number, nowMs: number, fmt: TimeFormat, lang: Lang): string => {
+  const t = STRINGS[lang]
   const shift = fmt.offsetMin * 60_000
   const at = new Date(resetsAt + shift)
   const today = new Date(nowMs + shift)
@@ -67,18 +76,18 @@ export const resetText = (resetsAt: number, nowMs: number, fmt: TimeFormat): str
   } else {
     const h12 = h % 12 || 12
     const hh = fmt.isPadded ? String(h12).padStart(2, '0') : String(h12)
-    time = `${m === 0 ? hh : `${hh}:${mm}`} ${dayPart(h)}`
+    time = t.time12(hh, mm, m, h)
   }
 
   // Разница в календарных днях по местному времени
   const dayOf = (d: Date) => Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86_400_000)
   const days = dayOf(at) - dayOf(today)
   if (days <= 0) return time
-  if (days === 1) return `завтра ${time}`
-  return `${WEEKDAYS[at.getUTCDay()]} ${time}`
+  if (days === 1) return `${t.tomorrow} ${time}`
+  return `${t.weekdays[at.getUTCDay()]} ${time}`
 }
 
-// Разбирает вывод PowerShell: шаблон короткого времени и смещение от UTC в минутах
+// Разбирает вывод PowerShell: шаблон короткого времени и смещение от UTC в минутах (строки 1–2)
 export const parseTimeFormat = (stdout: string): TimeFormat | null => {
   const [pattern, offset] = stdout.split(/\r?\n/).map(s => s.trim())
   const offsetMin = Number(offset)
@@ -97,8 +106,16 @@ const fallbackFormat = (): TimeFormat => ({
   offsetMin: -new Date().getTimezoneOffset(),
 })
 
-// Читает формат времени и часовой пояс из настроек пользователя Windows
-async function loadTimeFormat($: EngineInterface): Promise<TimeFormat> {
+// Язык по региональным настройкам Windows (Get-Culture) — третья строка вывода PowerShell.
+// Не язык интерфейса: многие ставят английскую Windows, но русский формат даты и времени
+export const parseUiLang = (stdout: string): Lang | null => {
+  const ui = stdout.split(/\r?\n/).map(s => s.trim())[2]
+  return ui ? langFromLocale(ui) : null
+}
+
+// Читает формат времени, часовой пояс и язык из региональных настроек Windows;
+// вне Windows — язык из LANG, формат по умолчанию
+async function loadSystem($: EngineInterface): Promise<{ fmt: TimeFormat; lang: Lang }> {
   try {
     const { exitCode, stdout } = await $.process.run(
       [
@@ -106,15 +123,19 @@ async function loadTimeFormat($: EngineInterface): Promise<TimeFormat> {
         '-NoProfile',
         '-NonInteractive',
         '-Command',
-        '(Get-Culture).DateTimeFormat.ShortTimePattern; [int][TimeZoneInfo]::Local.GetUtcOffset([DateTime]::UtcNow).TotalMinutes',
+        '(Get-Culture).DateTimeFormat.ShortTimePattern; [int][TimeZoneInfo]::Local.GetUtcOffset([DateTime]::UtcNow).TotalMinutes; (Get-Culture).Name',
       ],
       { timeoutMs: 10_000 },
     )
-    if (exitCode === 0) return parseTimeFormat(stdout) ?? fallbackFormat()
+    if (exitCode === 0) {
+      const fmt = parseTimeFormat(stdout)
+      const lang = parseUiLang(stdout)
+      if (fmt && lang) return { fmt, lang }
+    }
   } catch {
     // не Windows или PowerShell недоступен
   }
-  return fallbackFormat()
+  return { fmt: fallbackFormat(), lang: langFromLocale(await $.env.get('LANG')) }
 }
 
 // Сохраняет показания и в состояние сессии, и в хранилище (для следующего запуска)
@@ -129,8 +150,8 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'limits',
-      description: 'Полоска лимитов: без аргументов — показать/скрыть; skin — скин; icons — иконки Nerd Font',
-      argumentHint: '[skin [номер|имя] | icons nerd|off]',
+      description: 'Usage limits bar / Полоска лимитов: show/hide · skin · icons · lang',
+      argumentHint: '[skin [n|name] | icons nerd|off | lang ru|en|auto]',
     })
 
     const at = await $.clock.now()
@@ -141,11 +162,19 @@ export const register: Register = on => {
     }
     await update($, isNerd, () => false)
     if ((await $.store.get(ICONS_KEY)) === 'nerd') await update($, isNerd, () => true)
+    const storedLang = await $.store.get(LANG_KEY)
+    await update($, langSetting, () => (isLangSetting(storedLang) ? storedLang : 'auto'))
+    const storedSys = await $.store.get(SYS_LANG_KEY)
+    await update($, sysLang, () => (storedSys === 'ru' || storedSys === 'en' ? storedSys : 'en'))
     const storedSkin = await $.store.get(SKIN_KEY)
     await update($, skin, () => skinById(typeof storedSkin === 'string' ? storedSkin : undefined).id)
 
-    // Формат времени читаем в фоне, чтобы не задерживать запуск
-    void loadTimeFormat($).then(fmt => update($, timeFmt, () => fmt))
+    // Формат времени и язык системы читаем в фоне, чтобы не задерживать запуск
+    void loadSystem($).then(async ({ fmt, lang }) => {
+      await update($, timeFmt, () => fmt)
+      await update($, sysLang, () => lang)
+      await $.store.set(SYS_LANG_KEY, lang)
+    })
 
     // Сначала — свежие данные движка, если уже есть
     const usage = await $.session.usage()
@@ -181,44 +210,49 @@ export const register: Register = on => {
 
   on('command.run', { command: 'limits' }, async ($, e) => {
     const [sub = '', ...rest] = e.args.trim().split(/\s+/)
+    const lang = langOf(await read($, langSetting), await read($, sysLang))
+    const t = STRINGS[lang]
 
     // /limits skin [номер|имя]
     if (sub.toLowerCase() === 'skin') {
       const current = await read($, skin)
       const sample = (await read($, limits))?.five?.percent ?? 40
       const query = rest.join(' ')
-      if (!query) return { text: skinsList(current, sample) }
+      if (!query) return { text: skinsList(current, sample, lang) }
       const chosen = findSkin(query)
-      if (!chosen) return { text: `Скин «${query}» не найден.
-
-${skinsList(current, sample)}` }
+      if (!chosen) return { text: `${t.skinNotFound(query)}\n\n${skinsList(current, sample, lang)}` }
       await update($, skin, () => chosen.id)
       await $.store.set(SKIN_KEY, chosen.id)
-      return { text: `Скин: ${chosen.id} — ${chosen.title}.` }
+      return { text: t.skinChosen(chosen.id, chosen.title[lang]) }
     }
     // /limits icons nerd|off
     if (sub.toLowerCase() === 'icons') {
       const mode = (rest[0] ?? '').toLowerCase()
       if (mode !== 'nerd' && mode !== 'off') {
         const state = (await read($, isNerd)) ? 'nerd' : 'off'
-        return { text: `Иконки: ${state}. Включить: /limits icons nerd (нужен шрифт Nerd Font в терминале), выключить: /limits icons off.` }
+        return { text: t.iconsState(state) }
       }
       await update($, isNerd, () => mode === 'nerd')
       await $.store.set(ICONS_KEY, mode)
       return {
-        text: mode === 'nerd'
-          ? `Иконки Nerd Font включены: ${NERD.clock} ${NERD.calendar} ${NERD.refresh}. Если видны квадратики — в терминале не Nerd Font, выключите: /limits icons off.`
-          : 'Иконки выключены.',
+        text: mode === 'nerd' ? t.iconsOn(`${NERD.clock} ${NERD.calendar} ${NERD.refresh}`) : t.iconsOff,
       }
     }
-    if (sub) {
-      return { text: 'Команды: /limits — показать/скрыть полоску; /limits skin [номер|имя] — скины; /limits icons nerd|off — иконки Nerd Font.' }
+    // /limits lang ru|en|auto
+    if (sub.toLowerCase() === 'lang') {
+      const mode = (rest[0] ?? '').toLowerCase()
+      if (!isLangSetting(mode)) return { text: t.langState(await read($, langSetting), lang) }
+      await update($, langSetting, () => mode)
+      await $.store.set(LANG_KEY, mode)
+      const chosen = langOf(mode, await read($, sysLang))
+      return { text: STRINGS[chosen].langChosen(mode, chosen) }
     }
+    if (sub) return { text: t.help }
 
     const hidden = !(await read($, isHidden))
     await update($, isHidden, () => hidden)
     await $.store.set(HIDDEN_KEY, hidden)
-    return { text: hidden ? 'Полоска лимитов скрыта.' : 'Полоска лимитов показана.' }
+    return { text: hidden ? t.hidden : t.shown }
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
@@ -230,11 +264,13 @@ ${skinsList(current, sample)}` }
     const fmt = (await read($, timeFmt)) ?? fallbackFormat()
     const look = skinById(await read($, skin))
     const nerd = await read($, isNerd)
+    const lang = langOf(await read($, langSetting), await read($, sysLang))
+    const tr = STRINGS[lang]
 
     if (!data) {
       return (
         <Box paddingLeft={2}>
-          <Text dimColor>Лимиты: появятся после первого ответа Claude</Text>
+          <Text dimColor>{tr.waiting}</Text>
         </Box>
       )
     }
@@ -257,9 +293,9 @@ ${skinsList(current, sample)}` }
       const isReset = w.resetsAt !== null && w.resetsAt <= t
       const percent = isReset ? 0 : w.percent
       const tail = isReset
-        ? ' · сброшено'
+        ? ` · ${tr.reset}`
         : w.resetsAt !== null
-          ? ` · ${nerd ? NERD.refresh : PLAIN_RESET} ${resetText(w.resetsAt, t, fmt)}`
+          ? ` · ${nerd ? NERD.refresh : PLAIN_RESET} ${resetText(w.resetsAt, t, fmt, lang)}`
           : ''
       const [filled, empty] = barParts(percent, look)
       return (
@@ -275,9 +311,9 @@ ${skinsList(current, sample)}` }
 
     return (
       <Box paddingLeft={2}>
-        {cell(NERD.clock, '5ч', data.five)}
-        {cell(NERD.calendar, '7д', data.week)}
-        {data.isStale && <Text dimColor>(из прошлой сессии)</Text>}
+        {cell(NERD.clock, tr.five, data.five)}
+        {cell(NERD.calendar, tr.week, data.week)}
+        {data.isStale && <Text dimColor>{tr.stale}</Text>}
       </Box>
     )
   })
