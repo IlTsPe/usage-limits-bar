@@ -28,7 +28,7 @@ A [Claude Code](https://claude.com/claude-code) plugin that shows your subscript
 What the bar shows:
 - **5h** — usage of the five-hour session;
 - **7d** — usage of the weekly limit;
-- usage percentage — the filled part changes color: green below 50%, yellow below 80%, red above;
+- usage percentage — the filled part changes color: green below 50%, yellow from 50% to 80%, red from 80% to 100%;
 - limit reset time — the time when the limit starts over is shown in one of the following formats:
   - "3:10 pm" — if the reset happens today;
   - "tomorrow 2:50 am" — if it happens the next day;
