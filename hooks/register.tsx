@@ -60,7 +60,7 @@ const langOf = (setting: LangSetting, system: Lang): Lang => (setting === 'auto'
 
 const isLangSetting = (v: unknown): v is LangSetting => v === 'auto' || v === 'ru' || v === 'en'
 
-// Время сброса в формате пользователя: «5:00», «завтра 05:00», «сб 17:00», «5 утра» / «tomorrow 5 AM»
+// Время сброса в формате пользователя: «5:00», «завтра 05:00», «сб 17:00», «5 утра» / «tomorrow 5 am»
 export const resetText = (resetsAt: number, nowMs: number, fmt: TimeFormat, lang: Lang): string => {
   const t = STRINGS[lang]
   const shift = fmt.offsetMin * 60_000

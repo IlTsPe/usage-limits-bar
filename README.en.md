@@ -23,14 +23,14 @@
 A [Claude Code](https://claude.com/claude-code) plugin that shows your subscription usage right above the prompt. No more typing `/usage` every time you want to know how much is left.
 
 ```
-5h ━━━━━━━━ 13% · ↕ 3:10 PM   7d ━━━━━━━━ 38% · ↕ Sat 5 PM
+5h ━━━━━━━━ 13% · ↕ 3:10 pm   7d ━━━━━━━━ 38% · ↕ Sat 5 pm
 ```
 
 What the bar shows:
 - **5h** — usage of the five-hour session;
 - **7d** — usage of the weekly limit;
 - usage percentage — the filled part changes color: green below 50%, yellow below 80%, red above;
-- limit reset time — when the limit starts over: "3:10 PM" if it is today, "tomorrow 2:50 AM" if tomorrow, or the day of the week, such as "Sat 5 PM". The time zone and time format come from your Windows region settings (Settings → Time & language → Region): a 12-hour format gives "3:10 PM", a 24-hour format gives "15:10".
+- limit reset time — when the limit starts over: "3:10 pm" if it is today, "tomorrow 2:50 am" if tomorrow, or the day of the week, such as "Sat 5 pm". The time zone and time format come from your Windows region settings (Settings → Time & language → Region): a 12-hour format gives "3:10 pm", a 24-hour format gives "15:10".
 
 The bar updates on its own after every Claude reply. At startup, before the first reply, it shows the last known numbers marked "(last session)".
 
@@ -73,9 +73,9 @@ The plugin speaks English and Russian. The language is picked automatically from
 
 | | English | Русский |
 | --- | --- | --- |
-| Bar | `5h ━━━━━━━━ 13% · ↕ 3:10 PM` | `5ч ━━━━━━━━ 13% · ↕ 15:10` |
-| Tomorrow | `↕ tomorrow 2:50 AM` | `↕ завтра 2:50` |
-| Another day | `↕ Sat 5 PM` | `↕ сб 17:00` |
+| Bar | `5h ━━━━━━━━ 13% · ↕ 3:10 pm` | `5ч ━━━━━━━━ 13% · ↕ 15:10` |
+| Tomorrow | `↕ tomorrow 2:50 am` | `↕ завтра 2:50` |
+| Another day | `↕ Sat 5 pm` | `↕ сб 17:00` |
 
 The time follows your system time format, not the language: with a 24-hour format, English shows `Sat 17:00`. To choose the language yourself, use `/limits lang en` or `/limits lang ru`; to go back to automatic, `/limits lang auto`.
 

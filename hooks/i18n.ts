@@ -71,7 +71,7 @@ export const STRINGS: Record<Lang, Strings> = {
     week: '7d',
     weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     tomorrow: 'tomorrow',
-    time12: (hh, mm, m, h) => `${m === 0 ? hh : `${hh}:${mm}`} ${h < 12 ? 'AM' : 'PM'}`,
+    time12: (hh, mm, m, h) => `${m === 0 ? hh : `${hh}:${mm}`} ${h < 12 ? 'am' : 'pm'}`,
     reset: 'reset',
     waiting: "Limits: will appear after Claude's first reply",
     stale: '(last session)',

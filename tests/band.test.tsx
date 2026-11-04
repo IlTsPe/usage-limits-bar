@@ -118,8 +118,8 @@ test('английская Windows: 5h / 7d, 12-часовой формат, Sat
   ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /5h/ }))?.text).toContain('5h')
   expect((await ui.find({ type: 'Text', text: /7d/ }))?.text).toContain('7d')
-  expect((await ui.find({ type: 'Text', text: /↕ 3:10 PM/ }))?.text).toContain('↕ 3:10 PM')
-  expect((await ui.find({ type: 'Text', text: /↕ Sat 5 PM/ }))?.text).toContain('Sat 5 PM')
+  expect((await ui.find({ type: 'Text', text: /↕ 3:10 pm/ }))?.text).toContain('↕ 3:10 pm')
+  expect((await ui.find({ type: 'Text', text: /↕ Sat 5 pm/ }))?.text).toContain('Sat 5 pm')
   await ui.unmount()
 
   const list = await $.command.run({ command: 'limits', args: 'skin' } as never)
