@@ -23,7 +23,7 @@
 A [Claude Code](https://claude.com/claude-code) plugin that shows your subscription usage right above the prompt. No more typing `/usage` every time you want to know how much is left.
 
 ```
-5h ━━━━━━━━ 13%·↕3:10 pm│7d ━━━━━━━━ 38%·↕Sat 5 pm
+5h ━━━━━━━━ 13% · ↕ 3:10 pm │ 7d ━━━━━━━━ 38% · ↕ Sat 5 pm
 ```
 
 What the bar shows:
@@ -80,9 +80,9 @@ The plugin speaks English and Russian. The language is picked automatically from
 
 | | English | Русский |
 | --- | --- | --- |
-| Bar | `5h ━━━━━━━━ 13%·↕3:10 pm` | `5ч ━━━━━━━━ 13%·↕15:10` |
-| Tomorrow | `↕tomorrow 2:50 am` | `↕завтра 2:50` |
-| Another day | `↕Sat 5 pm` | `↕сб 17:00` |
+| Bar | `5h ━━━━━━━━ 13% · ↕ 3:10 pm` | `5ч ━━━━━━━━ 13% · ↕ 15:10` |
+| Tomorrow | `↕ tomorrow 2:50 am` | `↕ завтра 2:50` |
+| Another day | `↕ Sat 5 pm` | `↕ сб 17:00` |
 
 The time follows your system time format, not the language: with a 24-hour format, English shows `Sat 17:00`. To choose the language yourself, use `/limits lang en` or `/limits lang ru`; to go back to automatic, `/limits lang auto`.
 

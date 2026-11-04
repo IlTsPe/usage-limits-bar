@@ -278,7 +278,7 @@ export const register: Register = on => {
     const cell = (icon: string, label: string, w: Window | null) => {
       const head = (
         <Text color="warning" bold>
-          {nerd ? icon : ''}{label}{' '}
+          {nerd ? `${icon} ` : ''}{label}{' '}
         </Text>
       )
       if (!w) {
@@ -293,9 +293,9 @@ export const register: Register = on => {
       const isReset = w.resetsAt !== null && w.resetsAt <= t
       const percent = isReset ? 0 : w.percent
       const tail = isReset
-        ? `·${tr.reset}`
+        ? ` · ${tr.reset}`
         : w.resetsAt !== null
-          ? `·${nerd ? NERD.refresh : PLAIN_RESET}${resetText(w.resetsAt, t, fmt, lang)}`
+          ? ` · ${nerd ? NERD.refresh : PLAIN_RESET} ${resetText(w.resetsAt, t, fmt, lang)}`
           : ''
       const [filled, empty] = barParts(percent, look)
       return (
@@ -313,9 +313,9 @@ export const register: Register = on => {
       <Box paddingLeft={2}>
         {cell(NERD.clock, tr.five, data.five)}
         {/* Разделитель блоков: «│» — псевдографика, есть во всех стандартных шрифтах */}
-        <Text dimColor>│</Text>
+        <Text dimColor>{' │ '}</Text>
         {cell(NERD.calendar, tr.week, data.week)}
-        {data.isStale && <Text dimColor>{' '}{tr.stale}</Text>}
+        {data.isStale && <Text dimColor>{'   '}{tr.stale}</Text>}
       </Box>
     )
   })
