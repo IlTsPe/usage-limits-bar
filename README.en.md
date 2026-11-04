@@ -8,7 +8,6 @@
 
 <p align="center">
   <a href="#about">About</a> ·
-  <a href="#requirements">Requirements</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#commands">Commands</a> ·
   <a href="#skins">Skins</a> ·
@@ -41,11 +40,6 @@ What the bar shows:
 The bar updates on its own after every Claude reply. At startup, before the first reply, it shows the last known numbers marked "(last session)".
 
 In a narrow terminal window the bar shortens itself: first it drops the reset time, and if there is still not enough room, the week block.
-
-## Requirements
-- **Claude Code** — tested on version 2.1.318.
-- **Signed in with a Claude subscription** (Pro or Max). With an API key there are no "5 hours / week" limits.
-- **Where the bar shows:** Claude Code in a terminal — PowerShell, cmd, Git Bash, the VS Code terminal, Windows Terminal, iTerm2 and others — and the Claude desktop app.
 
 ## Installation
 At the Claude Code prompt:
@@ -136,7 +130,7 @@ To go back to automatic language detection, type: `/limits lang auto`.
 - Works when you sign in to Claude Code with a Claude subscription (Pro, Max). With an API key there are no "5 hours / week" limits, so the bar stays empty.
 - The bar shows in Claude Code in a terminal (PowerShell, cmd, Git Bash, the VS Code terminal, Windows Terminal, iTerm2, etc.) and in the desktop app. It does not show in the Claude Code extension panel for VS Code, in the browser or in the mobile app; use `/usage` there.
 - On Windows, the time format (12 or 24 hours) and the time zone come from the system settings. On macOS and Linux the time is shown in the 24-hour format in the system time zone.
-- The plugin uses the Claude Code plugin API, which is still in early access. After major Claude Code updates the plugin may need an update.
+- The plugin uses the Claude Code plugin API, which is still in early access (the plugin is tested on Claude Code 2.1.318). After major Claude Code updates the plugin may need an update.
 
 ## Update and removal
 Update to the latest version:
