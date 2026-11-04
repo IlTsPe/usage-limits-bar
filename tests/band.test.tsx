@@ -45,9 +45,9 @@ test('24-часовой формат: время сброса по Windows', asy
   await measure($)
   ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /4%/ }))?.text).toContain('4%')
-  expect((await ui.find({ type: 'Text', text: /↕ 15:10/ }))?.text).toContain('· ↕ 15:10')
+  expect((await ui.find({ type: 'Text', text: /↕15:10/ }))?.text).toContain('·↕15:10')
   expect((await ui.find({ type: 'Text', text: /36%/ }))?.text).toContain('36%')
-  expect((await ui.find({ type: 'Text', text: /↕ сб 17:00/ }))?.text).toContain('↕ сб 17:00')
+  expect((await ui.find({ type: 'Text', text: /↕сб 17:00/ }))?.text).toContain('↕сб 17:00')
   await ui.unmount()
 })
 
@@ -57,8 +57,8 @@ test('12-часовой формат: «3:10 дня», «5 вечера»', asyn
   await measure($)
 
   const ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /↕ 3:10 дня/ }))?.text).toContain('↕ 3:10 дня')
-  expect((await ui.find({ type: 'Text', text: /↕ сб 5 вечера/ }))?.text).toContain('сб 5 вечера')
+  expect((await ui.find({ type: 'Text', text: /↕3:10 дня/ }))?.text).toContain('↕3:10 дня')
+  expect((await ui.find({ type: 'Text', text: /↕сб 5 вечера/ }))?.text).toContain('сб 5 вечера')
   await ui.unmount()
 })
 
@@ -95,13 +95,13 @@ test('иконки Nerd Font: включение и выключение', async
 
   await $.command.run({ command: 'limits', args: 'icons nerd' } as never)
   let ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /\uF017 5ч/ }))?.text).toContain('5ч')
-  expect((await ui.find({ type: 'Text', text: /\uF021 15:10/ }))?.text).toContain('15:10')
+  expect((await ui.find({ type: 'Text', text: /\uF0175ч/ }))?.text).toContain('5ч')
+  expect((await ui.find({ type: 'Text', text: /\uF02115:10/ }))?.text).toContain('15:10')
   await ui.unmount()
 
   await $.command.run({ command: 'limits', args: 'icons off' } as never)
   ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /↕ 15:10/ }))?.text).toContain('↕ 15:10')
+  expect((await ui.find({ type: 'Text', text: /↕15:10/ }))?.text).toContain('↕15:10')
   await ui.unmount()
 })
 
@@ -118,8 +118,8 @@ test('английская Windows: 5h / 7d, 12-часовой формат, Sat
   ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /5h/ }))?.text).toContain('5h')
   expect((await ui.find({ type: 'Text', text: /7d/ }))?.text).toContain('7d')
-  expect((await ui.find({ type: 'Text', text: /↕ 3:10 pm/ }))?.text).toContain('↕ 3:10 pm')
-  expect((await ui.find({ type: 'Text', text: /↕ Sat 5 pm/ }))?.text).toContain('Sat 5 pm')
+  expect((await ui.find({ type: 'Text', text: /↕3:10 pm/ }))?.text).toContain('↕3:10 pm')
+  expect((await ui.find({ type: 'Text', text: /↕Sat 5 pm/ }))?.text).toContain('Sat 5 pm')
   await ui.unmount()
 
   const list = await $.command.run({ command: 'limits', args: 'skin' } as never)
@@ -137,12 +137,12 @@ test('язык вручную: /limits lang ru|en|auto', async ($, on) => {
   expect(JSON.stringify(ru)).toContain('русский')
   let ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /5ч/ }))?.text).toContain('5ч')
-  expect((await ui.find({ type: 'Text', text: /↕ сб 17:00/ }))?.text).toContain('сб 17:00')
+  expect((await ui.find({ type: 'Text', text: /↕сб 17:00/ }))?.text).toContain('сб 17:00')
   await ui.unmount()
 
   await $.command.run({ command: 'limits', args: 'lang auto' } as never)
   ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /↕ Sat 17:00/ }))?.text).toContain('Sat 17:00')
+  expect((await ui.find({ type: 'Text', text: /↕Sat 17:00/ }))?.text).toContain('Sat 17:00')
   await ui.unmount()
 })
 
@@ -151,6 +151,6 @@ test('разделитель │ между 5ч и 7д', async ($, on) => {
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   await measure($)
   const ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /│/ }))?.text).toBe(' │ ')
+  expect((await ui.find({ type: 'Text', text: /│/ }))?.text).toBe('│')
   await ui.unmount()
 })
