@@ -76,7 +76,12 @@ Type all commands at the Claude Code prompt.
 You can also collapse the bar with the Claude Code shortcut **Ctrl+X**, then **Ctrl+A**.
 
 ## Language
-The plugin speaks English and Russian. The language is picked automatically from your Windows region settings (Settings → Time & language → Region), or from the `LANG` variable on macOS and Linux: a Russian region gives Russian, any other gives English. The Windows display language does not matter.
+The plugin supports English and Russian. The interface language is detected automatically:
+
+- on Windows — from the region settings (Settings → Time & language → Region);
+- on macOS and Linux — from the `LANG` variable.
+
+If the region is set to Russia, the interface is in Russian; in all other cases it is in English. The language of the operating system itself does not affect the choice: for example, even if Windows is in English but the region is set to Russia, the plugin shows its text in Russian.
 
 | | English | Русский |
 | --- | --- | --- |
