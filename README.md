@@ -1,7 +1,6 @@
 <p align="center">
   <a href="https://github.com/IlTsPe/limits-for-claude"><img src="mascot/mascot-ru.jpg" alt="Limits for Claude — маскот: кот в наушниках рядом с карточкой расхода токенов" width="100%"></a>
 </p>
-
 <h1 align="center">Limits for Claude</h1>
 
 <p align="center"><b>Русский</b> · <a href="README.en.md">English</a></p>
