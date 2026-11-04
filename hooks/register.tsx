@@ -285,7 +285,7 @@ export const register: Register = on => {
         return (
           <Text>
             {head}
-            <Text dimColor>—{'   '}</Text>
+            <Text dimColor>—</Text>
           </Text>
         )
       }
@@ -304,7 +304,7 @@ export const register: Register = on => {
           <Text color={colorOf(percent)}>{filled}</Text>
           <Text color="inactive">{empty}</Text>
           <Text> {Math.round(percent)}%</Text>
-          <Text dimColor>{tail}{'   '}</Text>
+          <Text dimColor>{tail}</Text>
         </Text>
       )
     }
@@ -312,8 +312,10 @@ export const register: Register = on => {
     return (
       <Box paddingLeft={2}>
         {cell(NERD.clock, tr.five, data.five)}
+        {/* Разделитель блоков: «│» — псевдографика, есть во всех стандартных шрифтах */}
+        <Text dimColor>{' │ '}</Text>
         {cell(NERD.calendar, tr.week, data.week)}
-        {data.isStale && <Text dimColor>{tr.stale}</Text>}
+        {data.isStale && <Text dimColor>{'   '}{tr.stale}</Text>}
       </Box>
     )
   })

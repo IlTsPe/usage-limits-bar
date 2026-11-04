@@ -23,7 +23,7 @@
 A [Claude Code](https://claude.com/claude-code) plugin that shows your subscription usage right above the prompt. No more typing `/usage` every time you want to know how much is left.
 
 ```
-5h ━━━━━━━━ 13% · ↕ 3:10 pm   7d ━━━━━━━━ 38% · ↕ Sat 5 pm
+5h ━━━━━━━━ 13% · ↕ 3:10 pm │ 7d ━━━━━━━━ 38% · ↕ Sat 5 pm
 ```
 
 What the bar shows:

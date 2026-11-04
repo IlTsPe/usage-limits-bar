@@ -145,3 +145,12 @@ test('язык вручную: /limits lang ru|en|auto', async ($, on) => {
   expect((await ui.find({ type: 'Text', text: /↕ Sat 17:00/ }))?.text).toContain('Sat 17:00')
   await ui.unmount()
 })
+
+test('разделитель │ между 5ч и 7д', async ($, on) => {
+  setup(on, 'H:mm')
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await measure($)
+  const ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /│/ }))?.text).toBe(' │ ')
+  await ui.unmount()
+})
