@@ -89,7 +89,14 @@ If the region is set to Russia, the interface is in Russian; in all other cases 
 | Tomorrow | `↕ tomorrow 2:50 am` | `↕ завтра 2:50` |
 | Another day | `↕ Sat 5 pm` | `↕ сб 17:00` |
 
-The time follows your system time format, not the language: with a 24-hour format, English shows `Sat 17:00`. To choose the language yourself, use `/limits lang en` or `/limits lang ru`; to go back to automatic, `/limits lang auto`.
+The time format follows your system settings, not the interface language: for example, with a 24-hour format the time is shown as "Sat 17:00" even in English.
+
+To choose the language manually, use these commands:
+
+- `/limits lang en` — English;
+- `/limits lang ru` — Russian.
+
+To go back to automatic language detection, type: `/limits lang auto`.
 
 ## Skins
 A skin changes how the bar looks. All skins work with the standard fonts of Windows, macOS and Linux.
@@ -104,9 +111,17 @@ A skin changes how the bar looks. All skins work with the standard fonts of Wind
 | 6 | `dots` — dots | `•••·····` |
 
 ## Icons
-By default the plugin uses only characters that every font has. For nicer icons (a clock, a calendar and a refresh arrow) you need a font from the [Nerd Fonts](https://www.nerdfonts.com/) family:
+By default the plugin uses only characters that every font has. For nicer icons (a clock, a calendar and a refresh arrow) you need a font from the [Nerd Fonts](https://www.nerdfonts.com/) family.
+
+This is how the bar looks with icons:
+
+<p align="center"><img src="docs/icons-en.png" alt="The bar with Nerd Font icons: a clock before 5h, a calendar before 7d, circular arrows before the reset time" width="100%"></p>
+
+How to turn them on:
 
 1. Download and install any Nerd Font, for example [JetBrainsMono Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip). Pick the **Mono** variant (on Windows it is named, for example, "JetBrainsMono NFM"): all its icons are one cell wide, so the line does not shift.
+
+   Only fonts with **Nerd Font**, **NF** or **NFM** in their name have the icons. Regular versions such as "JetBrains Mono", "JetBrains Mono NL" or "JetBrains Mono Light" have no icons, even when installed next to a Nerd Font.
 2. Select that font in your terminal:
    - **PowerShell and cmd** — right-click the window title → Properties → Font;
    - **VS Code** — in `settings.json`: `"terminal.integrated.fontFamily": "'JetBrainsMono NFM'"`;
@@ -114,7 +129,7 @@ By default the plugin uses only characters that every font has. For nicer icons 
    - **Windows Terminal, iTerm2 and others** — in the profile settings.
 3. Turn the icons on: `/limits icons nerd`.
 
-If you see boxes instead of icons, the terminal font is not a Nerd Font. Turn the icons off with `/limits icons off`.
+If you see boxes instead of icons, the terminal uses a font without icons: a regular version instead of the Nerd Font. Turn the icons off with `/limits icons off`.
 
 ## Limitations
 - Works when you sign in to Claude Code with a Claude subscription (Pro, Max). With an API key there are no "5 hours / week" limits, so the bar stays empty.
