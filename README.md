@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/IlTsPe/limits-for-claude"><img src="mascot.png" alt="Limits for Claude — маскот: кот в наушниках с часами и календарём" width="100%"></a>
+  <a href="https://github.com/IlTsPe/limits-for-claude"><img src="mascot.png" alt="Limits for Claude — маскот: кот в наушниках с часами и календарём" width="50%"></a>
 </p>
 
 <h1 align="center">Limits for Claude</h1>
