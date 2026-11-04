@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="mascot/mascot-ru.jpg" alt="Limits for Claude — маскот: кот в наушниках рядом с карточкой расхода токенов" width="100%">
+  <img src="mascot/banner-ru.jpg" alt="Limits for Claude — маскот: кот в наушниках рядом с карточкой расхода токенов" width="100%">
 </p>
 <h1 align="center">Limits for Claude</h1>
 
