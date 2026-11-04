@@ -30,7 +30,14 @@ What the bar shows:
 - **5h** — usage of the five-hour session;
 - **7d** — usage of the weekly limit;
 - usage percentage — the filled part changes color: green below 50%, yellow below 80%, red above;
-- limit reset time — when the limit starts over: "3:10 pm" if it is today, "tomorrow 2:50 am" if tomorrow, or the day of the week, such as "Sat 5 pm". The time zone and time format come from your Windows region settings (Settings → Time & language → Region): a 12-hour format gives "3:10 pm", a 24-hour format gives "15:10".
+- limit reset time — the time when the limit starts over is shown in one of the following formats:
+  - "3:10 pm" — if the reset happens today;
+  - "tomorrow 2:50 am" — if it happens the next day;
+  - "Sat 5 pm" — if it happens on a specific day of the week.
+
+  The plugin takes the time zone and time format from your Windows region settings (Settings → Time & language → Region).
+
+  With a 12-hour format the time is shown as "3:10 pm", with a 24-hour format as "15:10".
 
 The bar updates on its own after every Claude reply. At startup, before the first reply, it shows the last known numbers marked "(last session)".
 
