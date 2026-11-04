@@ -1,0 +1,12 @@
+{
+  "name": "limits-for-claude",
+  "description": "Плагины Claude Code от Ильи Цыганкова",
+  "owner": { "name": "Ilya Tsygankov" },
+  "plugins": [
+    {
+      "name": "usage-limits",
+      "source": "./",
+      "description": "Полоска над промптом: расход 5-часовой сессии и недельного лимита в реальном времени"
+    }
+  ]
+}

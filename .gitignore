@@ -1,0 +1,6 @@
+# Типы, которые Claude Code генерирует при загрузке мода
+.claude-plugin/types/
+tsconfig.json
+*.log
+.DS_Store
+Thumbs.db
