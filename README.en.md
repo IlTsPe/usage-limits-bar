@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="#about">About</a> ·
+  <a href="#requirements">Requirements</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#commands">Commands</a> ·
   <a href="#language">Language</a> ·
@@ -22,9 +23,7 @@
 ## About
 A [Claude Code](https://claude.com/claude-code) plugin that shows your subscription usage right above the prompt. No more typing `/usage` every time you want to know how much is left.
 
-```
-5h ━━━━━━━━ 13% · ↕ 3:10 pm │ 7d ━━━━━━━━ 38% · ↕ Sat 5 pm
-```
+<p align="center"><img src="docs/bar-en.png" alt="The limits bar at different usage levels: green below 50%, yellow below 80%, red above" width="100%"></p>
 
 What the bar shows:
 - **5h** — usage of the five-hour session;
@@ -40,6 +39,13 @@ What the bar shows:
   With a 12-hour format the time is shown as "3:10 pm", with a 24-hour format as "15:10".
 
 The bar updates on its own after every Claude reply. At startup, before the first reply, it shows the last known numbers marked "(last session)".
+
+## Requirements
+- **Claude Code** — tested on version 2.1.318.
+- **Signed in with a Claude subscription** (Pro or Max). With an API key there are no "5 hours / week" limits.
+- **Where the bar shows:** Claude Code in a terminal — PowerShell, cmd, Git Bash, the VS Code terminal, Windows Terminal, iTerm2 and others — and the Claude desktop app.
+- **System:** Windows 10/11 — the time format and time zone come from the system; macOS and Linux — the time is in the 24-hour format.
+- **For icons** (optional) — a Nerd Font, see [Icons](#icons).
 
 ## Installation
 At the Claude Code prompt:
@@ -100,6 +106,10 @@ To go back to automatic language detection, type: `/limits lang auto`.
 
 ## Skins
 A skin changes how the bar looks. All skins work with the standard fonts of Windows, macOS and Linux.
+
+<p align="center"><img src="docs/skins.png" alt="Six bar skins: line, thin, double, blocks, squares, dots" width="40%"></p>
+
+The look depends on the terminal font: for example, in the standard Windows console the squares of the `squares` skin have small gaps between them.
 
 | # | Name | Look |
 | --- | --- | --- |
