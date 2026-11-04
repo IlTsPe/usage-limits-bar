@@ -11,9 +11,9 @@
   <a href="#requirements">Requirements</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#commands">Commands</a> ·
-  <a href="#language">Language</a> ·
   <a href="#skins">Skins</a> ·
   <a href="#icons">Icons</a> ·
+  <a href="#language">Language</a> ·
   <a href="#limitations">Limitations</a> ·
   <a href="#update-and-removal">Update and removal</a> ·
   <a href="#support-the-project">Support the project</a> ·
@@ -34,18 +34,19 @@ What the bar shows:
   - "tomorrow 2:50 am" — if it happens the next day;
   - "Sat 5 pm" — if it happens on a specific day of the week.
 
-  The plugin takes the time zone and time format from your Windows region settings (Settings → Time & language → Region).
+  The plugin takes the time zone and time format from your Windows region settings (Settings → Time & language → Region). Daylight saving time is taken into account: if the clocks change before the limit resets, the reset time is shown in the new time.
 
   With a 12-hour format the time is shown as "3:10 pm", with a 24-hour format as "15:10".
 
 The bar updates on its own after every Claude reply. At startup, before the first reply, it shows the last known numbers marked "(last session)".
+
+In a narrow terminal window the bar shortens itself: first it drops the reset time, and if there is still not enough room, the week block.
 
 ## Requirements
 - **Claude Code** — tested on version 2.1.318.
 - **Signed in with a Claude subscription** (Pro or Max). With an API key there are no "5 hours / week" limits.
 - **Where the bar shows:** Claude Code in a terminal — PowerShell, cmd, Git Bash, the VS Code terminal, Windows Terminal, iTerm2 and others — and the Claude desktop app.
 - **System:** Windows 10/11 — the time format and time zone come from the system; macOS and Linux — the time is in the 24-hour format.
-- **For icons** (optional) — a Nerd Font, see [Icons](#icons).
 
 ## Installation
 At the Claude Code prompt:
@@ -81,6 +82,34 @@ Type all commands at the Claude Code prompt.
 
 You can also collapse the bar with the Claude Code shortcut **Ctrl+X**, then **Ctrl+A**.
 
+## Skins
+A skin changes how the bar looks. All skins work with the standard fonts of Windows, macOS and Linux.
+
+<p align="center"><img src="docs/skins.png" alt="Six bar skins: line, thin, double, blocks, squares, dots" width="40%"></p>
+
+The look depends on the terminal font: for example, in the standard Windows console the squares of the `squares` skin have small gaps between them.
+
+## Icons
+By default the plugin uses only characters that every font has. For nicer icons (a clock, a calendar and a refresh arrow) you need a font from the [Nerd Fonts](https://www.nerdfonts.com/) family.
+
+This is how the bar looks with icons:
+
+<p align="center"><img src="docs/icons-en.png" alt="The bar with Nerd Font icons: a clock before 5h, a calendar before 7d, circular arrows before the reset time" width="100%"></p>
+
+How to turn them on:
+
+1. Download and install any Nerd Font, for example [JetBrainsMono Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip). Pick the **Mono** variant (on Windows it is named, for example, "JetBrainsMono NFM"): all its icons are one cell wide, so the line does not shift.
+
+   Only fonts with **Nerd Font**, **NF** or **NFM** in their name have the icons. Regular versions such as "JetBrains Mono", "JetBrains Mono NL" or "JetBrains Mono Light" have no icons, even when installed next to a Nerd Font.
+2. Select that font in your terminal:
+   - **PowerShell and cmd** — right-click the window title → Properties → Font;
+   - **VS Code** — in `settings.json`: `"terminal.integrated.fontFamily": "'JetBrainsMono NFM'"`;
+   - **Git Bash** — right-click the window → Options → Text → Font;
+   - **Windows Terminal, iTerm2 and others** — in the profile settings.
+3. Turn the icons on: `/limits icons nerd`.
+
+If you see boxes instead of icons, the terminal uses a font without icons: a regular version instead of the Nerd Font. Turn the icons off with `/limits icons off`.
+
 ## Language
 The plugin supports English and Russian. The interface language is detected automatically:
 
@@ -103,43 +132,6 @@ To choose the language manually, use these commands:
 - `/limits lang ru` — Russian.
 
 To go back to automatic language detection, type: `/limits lang auto`.
-
-## Skins
-A skin changes how the bar looks. All skins work with the standard fonts of Windows, macOS and Linux.
-
-<p align="center"><img src="docs/skins.png" alt="Six bar skins: line, thin, double, blocks, squares, dots" width="40%"></p>
-
-The look depends on the terminal font: for example, in the standard Windows console the squares of the `squares` skin have small gaps between them.
-
-| # | Name | Look |
-| --- | --- | --- |
-| 1 | `line` — thick line (default) | `━━━━━━━━` |
-| 2 | `thin` — thin line | `────────` |
-| 3 | `double` — double line | `════════` |
-| 4 | `blocks` — blocks | `███░░░░░` |
-| 5 | `squares` — squares | `■■■■■■■■` |
-| 6 | `dots` — dots | `•••·····` |
-
-## Icons
-By default the plugin uses only characters that every font has. For nicer icons (a clock, a calendar and a refresh arrow) you need a font from the [Nerd Fonts](https://www.nerdfonts.com/) family.
-
-This is how the bar looks with icons:
-
-<p align="center"><img src="docs/icons-en.png" alt="The bar with Nerd Font icons: a clock before 5h, a calendar before 7d, circular arrows before the reset time" width="100%"></p>
-
-How to turn them on:
-
-1. Download and install any Nerd Font, for example [JetBrainsMono Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip). Pick the **Mono** variant (on Windows it is named, for example, "JetBrainsMono NFM"): all its icons are one cell wide, so the line does not shift.
-
-   Only fonts with **Nerd Font**, **NF** or **NFM** in their name have the icons. Regular versions such as "JetBrains Mono", "JetBrains Mono NL" or "JetBrains Mono Light" have no icons, even when installed next to a Nerd Font.
-2. Select that font in your terminal:
-   - **PowerShell and cmd** — right-click the window title → Properties → Font;
-   - **VS Code** — in `settings.json`: `"terminal.integrated.fontFamily": "'JetBrainsMono NFM'"`;
-   - **Git Bash** — right-click the window → Options → Text → Font;
-   - **Windows Terminal, iTerm2 and others** — in the profile settings.
-3. Turn the icons on: `/limits icons nerd`.
-
-If you see boxes instead of icons, the terminal uses a font without icons: a regular version instead of the Nerd Font. Turn the icons off with `/limits icons off`.
 
 ## Limitations
 - Works when you sign in to Claude Code with a Claude subscription (Pro, Max). With an API key there are no "5 hours / week" limits, so the bar stays empty.

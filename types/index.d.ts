@@ -17,8 +17,10 @@ export type TimeFormat = {
   is24h: boolean
   // true — часы с ведущим нулём («HH:mm» / «hh:mm»)
   isPadded: boolean
-  // смещение местного времени от UTC, минуты
+  // смещение местного времени от UTC, минуты (на момент запуска)
   offsetMin: number
+  // почасовая таблица смещений на 8 суток вперёд (Windows): base — начало, мс UTC
+  offsets?: { base: number; list: number[] }
 }
 
 declare module 'claude-code' {

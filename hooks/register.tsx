@@ -60,12 +60,23 @@ const langOf = (setting: LangSetting, system: Lang): Lang => (setting === 'auto'
 
 const isLangSetting = (v: unknown): v is LangSetting => v === 'auto' || v === 'ru' || v === 'en'
 
+const HOUR = 3_600_000
+
+// Смещение от UTC (минуты), действующее в момент ts: по почасовой таблице из Windows,
+// чтобы переход на летнее/зимнее время между «сейчас» и сбросом не сдвигал время на час.
+// Вне таблицы (не Windows или сессия дольше 8 суток) — смещение на момент запуска
+export const offsetAt = (fmt: TimeFormat, ts: number): number => {
+  const tz = fmt.offsets
+  if (!tz) return fmt.offsetMin
+  const i = Math.floor((ts - tz.base) / HOUR)
+  return i >= 0 && i < tz.list.length ? (tz.list[i] as number) : fmt.offsetMin
+}
+
 // Время сброса в формате пользователя: «5:00», «завтра 05:00», «сб 17:00», «5 утра» / «tomorrow 5 am»
 export const resetText = (resetsAt: number, nowMs: number, fmt: TimeFormat, lang: Lang): string => {
   const t = STRINGS[lang]
-  const shift = fmt.offsetMin * 60_000
-  const at = new Date(resetsAt + shift)
-  const today = new Date(nowMs + shift)
+  const at = new Date(resetsAt + offsetAt(fmt, resetsAt) * 60_000)
+  const today = new Date(nowMs + offsetAt(fmt, nowMs) * 60_000)
   const h = at.getUTCHours()
   const m = at.getUTCMinutes()
   const mm = String(m).padStart(2, '0')
@@ -99,6 +110,15 @@ export const parseTimeFormat = (stdout: string): TimeFormat | null => {
   }
 }
 
+// Почасовая таблица смещений — строки 4–5 вывода PowerShell: начало (мс UTC) и смещения через запятую
+export const parseOffsets = (stdout: string): TimeFormat['offsets'] => {
+  const lines = stdout.split(/\r?\n/).map(s => s.trim())
+  const base = Number(lines[3])
+  const list = (lines[4] ?? '').split(',').map(Number)
+  if (!Number.isFinite(base) || list.length === 0 || list.some(n => !Number.isFinite(n))) return undefined
+  return { base, list }
+}
+
 // Формат по умолчанию, если Windows ответить не смог: 24 часа, пояс среды
 const fallbackFormat = (): TimeFormat => ({
   is24h: true,
@@ -123,14 +143,22 @@ async function loadSystem($: EngineInterface): Promise<{ fmt: TimeFormat; lang: 
         '-NoProfile',
         '-NonInteractive',
         '-Command',
-        '(Get-Culture).DateTimeFormat.ShortTimePattern; [int][TimeZoneInfo]::Local.GetUtcOffset([DateTime]::UtcNow).TotalMinutes; (Get-Culture).Name',
+        // Строки: формат времени; смещение сейчас; регион; начало таблицы (мс UTC, ровный час);
+        // смещения на каждый час ближайших 8 суток
+        '(Get-Culture).DateTimeFormat.ShortTimePattern; ' +
+          '[int][TimeZoneInfo]::Local.GetUtcOffset([DateTime]::UtcNow).TotalMinutes; ' +
+          '(Get-Culture).Name; ' +
+          '$b = [DateTime]::UtcNow; $b = $b.AddTicks(-($b.Ticks % 36000000000)); ' +
+          '[long]($b - [DateTime]::new(1970, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)).TotalMilliseconds; ' +
+          "((0..192) | ForEach-Object { [int][TimeZoneInfo]::Local.GetUtcOffset($b.AddHours($_)).TotalMinutes }) -join ','",
       ],
       { timeoutMs: 10_000 },
     )
     if (exitCode === 0) {
-      const fmt = parseTimeFormat(stdout)
+      const parsed = parseTimeFormat(stdout)
       const lang = parseUiLang(stdout)
-      if (fmt && lang) return { fmt, lang }
+      const offsets = parseOffsets(stdout)
+      if (parsed && lang) return { fmt: offsets ? { ...parsed, offsets } : parsed, lang }
     }
   } catch {
     // не Windows или PowerShell недоступен
@@ -275,47 +303,76 @@ export const register: Register = on => {
       )
     }
 
-    const cell = (icon: string, label: string, w: Window | null) => {
+    // Ячейка окна лимита: узел и его ширина в символах (все символы шириной в одну ячейку)
+    const cell = (icon: string, label: string, w: Window | null, withTail: boolean) => {
+      const headText = `${nerd ? `${icon} ` : ''}${label} `
       const head = (
         <Text color="warning" bold>
-          {nerd ? `${icon} ` : ''}{label}{' '}
+          {headText}
         </Text>
       )
       if (!w) {
-        return (
-          <Text>
-            {head}
-            <Text dimColor>—</Text>
-          </Text>
-        )
+        return {
+          width: headText.length + 1,
+          node: (
+            <Text>
+              {head}
+              <Text dimColor>—</Text>
+            </Text>
+          ),
+        }
       }
       // Окно уже сбросилось, а свежих данных ещё нет
       const isReset = w.resetsAt !== null && w.resetsAt <= t
       const percent = isReset ? 0 : w.percent
-      const tail = isReset
+      const fullTail = isReset
         ? ` · ${tr.reset}`
         : w.resetsAt !== null
           ? ` · ${nerd ? NERD.refresh : PLAIN_RESET} ${resetText(w.resetsAt, t, fmt, lang)}`
           : ''
+      const tail = withTail ? fullTail : ''
       const [filled, empty] = barParts(percent, look)
-      return (
-        <Text>
-          {head}
-          <Text color={colorOf(percent)}>{filled}</Text>
-          <Text color="inactive">{empty}</Text>
-          <Text> {Math.round(percent)}%</Text>
-          <Text dimColor>{tail}</Text>
-        </Text>
-      )
+      const pct = ` ${Math.round(percent)}%`
+      return {
+        width: headText.length + filled.length + empty.length + pct.length + tail.length,
+        node: (
+          <Text>
+            {head}
+            <Text color={colorOf(percent)}>{filled}</Text>
+            <Text color="inactive">{empty}</Text>
+            <Text>{pct}</Text>
+            <Text dimColor>{tail}</Text>
+          </Text>
+        ),
+      }
     }
+
+    // Узкое окно: полная строка → без времени сброса → только 5ч.
+    // Ширина — колонки полосы минус отступ слева (2)
+    const room = (e.props.bodyColumns ?? 200) - 2
+    const SEP = ' │ '
+    const STALE = `   ${tr.stale}`
+    const layout = () => {
+      for (const withTail of [true, false]) {
+        const five = cell(NERD.clock, tr.five, data.five, withTail)
+        const week = cell(NERD.calendar, tr.week, data.week, withTail)
+        const width = five.width + SEP.length + week.width
+        if (width <= room) {
+          const stale = data.isStale && width + STALE.length <= room
+          return { five, week: week as typeof week | null, stale }
+        }
+      }
+      return { five: cell(NERD.clock, tr.five, data.five, false), week: null, stale: false }
+    }
+    const shown = layout()
 
     return (
       <Box paddingLeft={2}>
-        {cell(NERD.clock, tr.five, data.five)}
+        {shown.five.node}
         {/* Разделитель блоков: «│» — псевдографика, есть во всех стандартных шрифтах */}
-        <Text dimColor>{' │ '}</Text>
-        {cell(NERD.calendar, tr.week, data.week)}
-        {data.isStale && <Text dimColor>{'   '}{tr.stale}</Text>}
+        {shown.week && <Text dimColor>{SEP}</Text>}
+        {shown.week?.node}
+        {shown.stale && <Text dimColor>{STALE}</Text>}
       </Box>
     )
   })
