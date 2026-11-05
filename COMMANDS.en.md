@@ -35,26 +35,66 @@ You can also collapse the bar with the Claude Code shortcut **Ctrl+X**, then **C
 <p align="center"><img src="docs/commands/en-skin-set.png" alt="/limits skin 4 turns on the blocks skin" width="85%"></p>
 
 ## Bar length
-`/limits width 4…16` sets the bar length in cells; the default is 8.
+`/limits width 4…16` sets the bar length in cells; the default is 8. A longer bar shows usage more precisely but takes more room.
 
-<p align="center"><img src="docs/commands/en-width.png" alt="/limits width 12 makes a 12-cell bar" width="85%"></p>
+**4 — the shortest**
+
+<p align="center"><img src="docs/commands/en-width-4.png" alt="/limits width 4" width="585"></p>
+
+**8 — default**
+
+<p align="center"><img src="docs/commands/en-width-8.png" alt="/limits width 8" width="669"></p>
+
+**12**
+
+<p align="center"><img src="docs/commands/en-width-12.png" alt="/limits width 12" width="753"></p>
+
+**16 — the longest**
+
+<p align="center"><img src="docs/commands/en-width-16.png" alt="/limits width 16" width="837"></p>
 
 ## Color thresholds
-`/limits colors <yellow> <red>` sets the percentage at which the bar turns yellow and red. The default is 50 and 80: green below 50%, yellow below 80%, red above.
+`/limits colors <yellow> <red>` sets the percentage at which the bar turns yellow and red. All examples use the same numbers — 5h 45%, 7d 62% — only the thresholds change.
 
-<p align="center"><img src="docs/commands/en-colors.png" alt="/limits colors 40 60: 45% is yellow, 62% is red" width="85%"></p>
+**50 and 80 — default: green below 50%, yellow below 80%, red above**
+
+<p align="center"><img src="docs/commands/en-colors-50-80.png" alt="/limits colors 50 80" width="788"></p>
+
+**70 and 90 — calmer: green below 70%, yellow below 90%**
+
+<p align="center"><img src="docs/commands/en-colors-70-90.png" alt="/limits colors 70 90" width="788"></p>
+
+**30 and 60 — stricter: yellow from 30%, red from 60%**
+
+<p align="center"><img src="docs/commands/en-colors-30-60.png" alt="/limits colors 30 60" width="788"></p>
 
 The first number must be smaller than the second, both from 1 to 100. Otherwise the plugin shows the right format.
 
 ## Which windows to show
-`/limits show both` shows both windows (default), `/limits show 5h` only the 5-hour session, `/limits show 7d` only the week.
+`/limits show <value>` chooses which limits the bar shows.
 
-<p align="center"><img src="docs/commands/en-show.png" alt="/limits show 7d keeps only the weekly limit" width="70%"></p>
+**`both` — both windows (default)**
+
+<p align="center"><img src="docs/commands/en-show-both.png" alt="/limits show both" width="669"></p>
+
+**`5h` — the 5-hour session only**
+
+<p align="center"><img src="docs/commands/en-show-5h.png" alt="/limits show 5h" width="378"></p>
+
+**`7d` — the week only**
+
+<p align="center"><img src="docs/commands/en-show-7d.png" alt="/limits show 7d" width="378"></p>
 
 ## Reset time
-`/limits time off` hides the reset time; `/limits time on` shows it again (default).
+`/limits time <value>` chooses whether to show when the limit starts over.
 
-<p align="center"><img src="docs/commands/en-time.png" alt="/limits time off removes the reset time" width="75%"></p>
+**`on` — show (default)**
+
+<p align="center"><img src="docs/commands/en-time-on.png" alt="/limits time on" width="669"></p>
+
+**`off` — hide**
+
+<p align="center"><img src="docs/commands/en-time-off.png" alt="/limits time off" width="420"></p>
 
 ## Icons
 `/limits icons nerd` turns on clock, calendar and refresh icons; `/limits icons off` turns them off. A Nerd Font is needed in the terminal — see [Icons](README.en.md#icons) in the plugin overview.

@@ -35,26 +35,66 @@
 <p align="center"><img src="docs/commands/ru-skin-set.png" alt="/limits skin 4 включает скин blocks" width="85%"></p>
 
 ## Длина полоски
-`/limits width 4…16` — длина полоски в делениях, по умолчанию 8.
+`/limits width 4…16` — длина полоски в делениях, по умолчанию 8. Чем длиннее полоска, тем точнее видно расход, но тем больше места она занимает.
 
-<p align="center"><img src="docs/commands/ru-width.png" alt="/limits width 12 делает полоску из 12 делений" width="85%"></p>
+**4 — самая короткая**
+
+<p align="center"><img src="docs/commands/ru-width-4.png" alt="/limits width 4" width="564"></p>
+
+**8 — по умолчанию**
+
+<p align="center"><img src="docs/commands/ru-width-8.png" alt="/limits width 8" width="648"></p>
+
+**12**
+
+<p align="center"><img src="docs/commands/ru-width-12.png" alt="/limits width 12" width="732"></p>
+
+**16 — самая длинная**
+
+<p align="center"><img src="docs/commands/ru-width-16.png" alt="/limits width 16" width="816"></p>
 
 ## Пороги цветов
-`/limits colors <жёлтый> <красный>` — с какого процента полоска желтеет и краснеет. По умолчанию 50 и 80: зелёный до 50%, жёлтый до 80%, дальше красный.
+`/limits colors <жёлтый> <красный>` — с какого процента полоска желтеет и краснеет. На всех примерах одни и те же цифры — 5ч 45%, 7д 62% — меняются только пороги.
 
-<p align="center"><img src="docs/commands/ru-colors.png" alt="/limits colors 40 60: 45% — жёлтый, 62% — красный" width="85%"></p>
+**50 и 80 — по умолчанию: зелёный до 50%, жёлтый до 80%, дальше красный**
+
+<p align="center"><img src="docs/commands/ru-colors-50-80.png" alt="/limits colors 50 80" width="788"></p>
+
+**70 и 90 — спокойнее: зелёный до 70%, жёлтый до 90%**
+
+<p align="center"><img src="docs/commands/ru-colors-70-90.png" alt="/limits colors 70 90" width="788"></p>
+
+**30 и 60 — строже: жёлтый уже с 30%, красный с 60%**
+
+<p align="center"><img src="docs/commands/ru-colors-30-60.png" alt="/limits colors 30 60" width="788"></p>
 
 Первое число должно быть меньше второго, оба — от 1 до 100. Иначе плагин подскажет правильный формат.
 
 ## Какие окна показывать
-`/limits show both` — оба окна (по умолчанию), `/limits show 5h` — только 5-часовую сессию, `/limits show 7d` — только неделю.
+`/limits show <значение>` — какие лимиты выводить в полоске.
 
-<p align="center"><img src="docs/commands/ru-show.png" alt="/limits show 7d оставляет только недельный лимит" width="70%"></p>
+**`both` — оба окна (по умолчанию)**
+
+<p align="center"><img src="docs/commands/ru-show-both.png" alt="/limits show both" width="648"></p>
+
+**`5h` — только 5-часовая сессия**
+
+<p align="center"><img src="docs/commands/ru-show-5h.png" alt="/limits show 5h" width="462"></p>
+
+**`7d` — только неделя**
+
+<p align="center"><img src="docs/commands/ru-show-7d.png" alt="/limits show 7d" width="462"></p>
 
 ## Время сброса
-`/limits time off` — скрыть время сброса, `/limits time on` — показывать снова (по умолчанию).
+`/limits time <значение>` — показывать ли время, когда лимит снова обнулится.
 
-<p align="center"><img src="docs/commands/ru-time.png" alt="/limits time off убирает время сброса" width="75%"></p>
+**`on` — показывать (по умолчанию)**
+
+<p align="center"><img src="docs/commands/ru-time-on.png" alt="/limits time on" width="648"></p>
+
+**`off` — скрыть**
+
+<p align="center"><img src="docs/commands/ru-time-off.png" alt="/limits time off" width="441"></p>
 
 ## Иконки
 `/limits icons nerd` — значки часов, календаря и обновления, `/limits icons off` — выключить. Нужен шрифт Nerd Font в терминале — подробнее в разделе [Иконки](README.md#иконки) описания плагина.
