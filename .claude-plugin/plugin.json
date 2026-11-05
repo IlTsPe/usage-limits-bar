@@ -1,6 +1,6 @@
 {
   "name": "usage-limits",
-  "version": "0.8.0",
+  "version": "0.8.3",
   "description": "Полоска над промптом: расход 5-часовой сессии и недельного лимита в реальном времени",
   "author": {
     "name": "Ilya Tsygankov"

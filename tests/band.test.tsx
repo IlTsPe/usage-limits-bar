@@ -256,3 +256,29 @@ test('скин segments: квадратики через пробел, втор�
   expect((await ui.find({ type: 'Text', text: /^■ ■ ■ ■ ■$/ }))?.text).toBe('■ ■ ■ ■ ■')
   await ui.unmount()
 })
+
+test('цифры обновляются при каждом замере, даже без отметки rateLimits', async ($, on) => {
+  setup(on, 'H:mm')
+  on('command.run', () => ({ text: 'engine' }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.session.measure({
+    context: {}, changed: ['rateLimits'],
+    rateLimits: [{ kind: 'five_hour', percentUsed: 19.4, resetsAt: '2026-11-04T12:10:00Z' }],
+  } as never)
+  let ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /19%/ }))?.text).toContain('19%')
+  await ui.unmount()
+
+  // Сдвиг меньше пункта: движок отмечает только context, но проценты уже 19,6
+  await $.session.measure({
+    context: {}, changed: ['context'],
+    rateLimits: [{ kind: 'five_hour', percentUsed: 19.6, resetsAt: '2026-11-04T12:10:00Z' }],
+  } as never)
+  ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /20%/ }))?.text).toContain('20%')
+  await ui.unmount()
+
+  const dbg = await $.command.run({ command: 'limits', args: 'debug' } as never)
+  expect(JSON.stringify(dbg)).toContain('19.6%')
+  expect(JSON.stringify(dbg)).toContain('проверены')
+})

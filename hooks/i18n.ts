@@ -22,6 +22,8 @@ type Strings = {
   hidden: string
   shown: string
   help: string
+  debugReset: string
+  debugAge: (changed: number, checked: number, isStale: boolean) => string
   skinsTitle: string
   skinsHint: string
   skinNotFound: (q: string) => string
@@ -51,7 +53,11 @@ export const STRINGS: Record<Lang, Strings> = {
     shown: 'Полоска лимитов показана.',
     help:
       'Команды: /limits — показать/скрыть полоску; /limits skin [номер|имя] — скины; ' +
-      '/limits icons nerd|off — иконки Nerd Font; /limits lang ru|en|auto — язык.',
+      '/limits icons nerd|off — иконки Nerd Font; /limits lang ru|en|auto — язык; ' +
+      '/limits debug — точные значения.',
+    debugReset: 'сброс',
+    debugAge: (c, k, stale) =>
+      `Цифры менялись ${c} с назад${stale ? ' (из прошлой сессии)' : ''}, проверены ${k} с назад.`,
     skinsTitle: 'Скины полоски:',
     skinsHint: 'Выбрать: /limits skin <номер или имя>, например /limits skin 4',
     skinNotFound: q => `Скин «${q}» не найден.`,
@@ -79,7 +85,11 @@ export const STRINGS: Record<Lang, Strings> = {
     shown: 'Limits bar shown.',
     help:
       'Commands: /limits — show/hide the bar; /limits skin [number|name] — skins; ' +
-      '/limits icons nerd|off — Nerd Font icons; /limits lang ru|en|auto — language.',
+      '/limits icons nerd|off — Nerd Font icons; /limits lang ru|en|auto — language; ' +
+      '/limits debug — exact values.',
+    debugReset: 'reset',
+    debugAge: (c, k, stale) =>
+      `Numbers changed ${c} s ago${stale ? ' (last session)' : ''}, checked ${k} s ago.`,
     skinsTitle: 'Bar skins:',
     skinsHint: 'Choose: /limits skin <number or name>, e.g. /limits skin 4',
     skinNotFound: q => `Skin "${q}" not found.`,

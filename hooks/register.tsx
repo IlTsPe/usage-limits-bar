@@ -241,6 +241,18 @@ async function loadSystem($: EngineInterface): Promise<{ fmt: TimeFormat; lang: 
   return { fmt: fallbackFormat(), lang: langFromLocale(await $.env.get('LANG')) }
 }
 
+// Те же цифры, что уже показаны: окна совпадают по проценту и времени сброса
+const sameLimits = (a: Limits | null, b: Limits): boolean =>
+  !!a && !a.isStale && JSON.stringify([a.five, a.week]) === JSON.stringify([b.five, b.week])
+
+// Принимает свежие окна лимитов: сохраняет, только если что-то изменилось
+async function refresh($: EngineInterface, list: readonly SessionRateLimit[]) {
+  const at = await $.clock.now()
+  await update($, now, () => at)
+  const fresh = fromRateLimits(list, at)
+  if (fresh && !sameLimits(await read($, limits), fresh)) await save($, fresh)
+}
+
 // Сохраняет показания и в состояние сессии, и в хранилище (для следующего запуска)
 async function save($: EngineInterface, value: Limits) {
   await update($, limits, () => value)
@@ -293,21 +305,21 @@ export const register: Register = on => {
     }
 
     timer?.cancel()
+    // Раз в минуту: пересчитать «сброс через…» и перечитать последние цифры движка
+    // (бесплатный вызов) — подхватывает ответы фоновых агентов и сдвиги меньше пункта
     timer = $.clock.every(60_000, () => {
-      void $.clock.now().then(t => update($, now, () => t))
+      void $.session.usage().then(u => refresh($, u.rateLimits))
     })
 
     return next(e)
   })
 
   // Движок присылает показания после каждого ответа и при сдвиге окна на 1%
+  // Цифры берём при каждом замере (после каждого ответа), а не только когда движок
+  // отметил «rateLimits»: он отмечает это лишь при сдвиге на целый пункт, и полоска
+  // отставала (19% при 19,6% на сервере, а /usage уже показывал 20%)
   on('session.measure', async ($, e, next) => {
-    if (e.changed.includes('rateLimits')) {
-      const at = await $.clock.now()
-      const fresh = fromRateLimits(e.rateLimits, at)
-      if (fresh) await save($, fresh)
-      await update($, now, () => at)
-    }
+    await refresh($, e.rateLimits)
     return next(e)
   })
 
@@ -349,6 +361,23 @@ export const register: Register = on => {
       await $.store.set(LANG_KEY, mode)
       const chosen = langOf(mode, await read($, sysLang))
       return { text: STRINGS[chosen].langChosen(mode, chosen) }
+    }
+    // /limits debug — точные значения с десятыми и время получения
+    if (sub.toLowerCase() === 'debug') {
+      const data = await read($, limits)
+      const fmt = (await read($, timeFmt)) ?? fallbackFormat()
+      const nowMs = await $.clock.now()
+      const row = (label: string, w: Window | null) =>
+        w
+          ? `${label}: ${w.percent}%` + (w.resetsAt !== null ? ` · ${t.debugReset} ${resetText(w.resetsAt, nowMs, fmt, lang)}` : '')
+          : `${label}: —`
+      if (!data) return { text: t.waiting }
+      // Менялись — когда пришли другие цифры; проверены — последний перечитанный замер
+      const changed = Math.max(0, Math.round((nowMs - data.at) / 1000))
+      const checked = Math.max(0, Math.round((nowMs - ((await read($, now)) || nowMs)) / 1000))
+      return {
+        text: [row(t.five, data.five), row(t.week, data.week), t.debugAge(changed, checked, data.isStale)].join('\n'),
+      }
     }
     if (sub) return { text: t.help }
 

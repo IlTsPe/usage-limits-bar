@@ -73,6 +73,7 @@ claude plugin install usage-limits --marketplace IlTsPe/usage-limits-bar
 | `/limits lang` | Показать текущий язык |
 | `/limits lang ru` / `en` | Включить русский или английский язык |
 | `/limits lang auto` | Язык по региональным настройкам системы (по умолчанию) |
+| `/limits debug` | Точные значения, когда цифры менялись и когда плагин их последний раз проверял — чтобы сверить с `/usage` |
 
 Свернуть полоску можно и сочетанием клавиш Claude Code: **Ctrl+X**, затем **Ctrl+A**.
 

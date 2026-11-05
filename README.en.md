@@ -73,6 +73,7 @@ Type all commands at the Claude Code prompt.
 | `/limits lang` | Show the current language |
 | `/limits lang en` / `ru` | Switch to English or Russian |
 | `/limits lang auto` | Language from the system region settings (default) |
+| `/limits debug` | Exact values, when the numbers last changed and when the plugin last checked them — to compare with `/usage` |
 
 You can also collapse the bar with the Claude Code shortcut **Ctrl+X**, then **Ctrl+A**.
 
