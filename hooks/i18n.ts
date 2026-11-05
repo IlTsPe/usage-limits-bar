@@ -33,6 +33,8 @@ type Strings = {
   showSet: (name: string) => string
   timeState: (on: boolean) => string
   timeSet: (on: boolean) => string
+  clockState: (mode: 'auto' | '12' | '24') => string
+  clockSet: (mode: 'auto' | '12' | '24') => string
   debugAge: (changed: number, checked: number, isStale: boolean) => string
   skinsTitle: string
   skinsHint: string
@@ -74,7 +76,7 @@ export const STRINGS: Record<Lang, Strings> = {
       'Команды: /limits — показать/скрыть полоску; /limits skin [номер|имя] — скины; ' +
       '/limits icons nerd|off — иконки Nerd Font; /limits lang ru|en|auto — язык; ' +
       '/limits width 4…16 — длина; /limits colors 50 80 — пороги цветов; ' +
-      '/limits show both|5h|7d — окна; /limits time on|off — время сброса; ' +
+      '/limits show both|5h|7d — окна; /limits time on|off — время сброса; /limits clock 12|24|auto — формат времени; ' +
       '/limits debug — точные значения.',
     debugReset: 'сброс',
     widthState: n => `Длина полоски: ${cellsRu(n)}. Изменить: /limits width 4…16, например /limits width 12.`,
@@ -88,6 +90,9 @@ export const STRINGS: Record<Lang, Strings> = {
     showSet: name => `Показывать: ${name}.`,
     timeState: on => `Время сброса: ${on ? 'показывается' : 'скрыто'}. Изменить: /limits time on|off.`,
     timeSet: on => (on ? 'Время сброса показывается.' : 'Время сброса скрыто.'),
+    clockState: mode =>
+      `Формат времени: ${mode === 'auto' ? 'как в системе' : mode === '12' ? '12 часов' : '24 часа'}. Изменить: /limits clock 12|24|auto.`,
+    clockSet: mode => `Формат времени: ${mode === 'auto' ? 'как в системе' : mode === '12' ? '12 часов' : '24 часа'}.`,
     debugAge: (c, k, stale) =>
       `Цифры менялись ${c} с назад${stale ? ' (из прошлой сессии)' : ''}, проверены ${k} с назад.`,
     skinsTitle: 'Скины полоски:',
@@ -119,7 +124,7 @@ export const STRINGS: Record<Lang, Strings> = {
       'Commands: /limits — show/hide the bar; /limits skin [number|name] — skins; ' +
       '/limits icons nerd|off — Nerd Font icons; /limits lang ru|en|auto — language; ' +
       '/limits width 4…16 — length; /limits colors 50 80 — color thresholds; ' +
-      '/limits show both|5h|7d — windows; /limits time on|off — reset time; ' +
+      '/limits show both|5h|7d — windows; /limits time on|off — reset time; /limits clock 12|24|auto — time format; ' +
       '/limits debug — exact values.',
     debugReset: 'reset',
     widthState: n => `Bar length: ${n} cells. Change: /limits width 4…16, e.g. /limits width 12.`,
@@ -133,6 +138,8 @@ export const STRINGS: Record<Lang, Strings> = {
     showSet: name => `Show: ${name}.`,
     timeState: on => `Reset time: ${on ? 'shown' : 'hidden'}. Change: /limits time on|off.`,
     timeSet: on => (on ? 'Reset time shown.' : 'Reset time hidden.'),
+    clockState: mode => `Time format: ${mode === 'auto' ? 'as in the system' : `${mode}-hour`}. Change: /limits clock 12|24|auto.`,
+    clockSet: mode => `Time format: ${mode === 'auto' ? 'as in the system' : `${mode}-hour`}.`,
     debugAge: (c, k, stale) =>
       `Numbers changed ${c} s ago${stale ? ' (last session)' : ''}, checked ${k} s ago.`,
     skinsTitle: 'Bar skins:',

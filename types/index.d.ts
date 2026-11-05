@@ -19,7 +19,7 @@ export type TimeFormat = {
   isPadded: boolean
   // смещение местного времени от UTC, минуты (на момент запуска)
   offsetMin: number
-  // почасовая таблица смещений на 8 суток вперёд (Windows, macOS, Linux): base — начало, мс UTC
+  // почасовая таблица смещений на 8 суток вперёд: base — начало, мс UTC
   offsets?: { base: number; list: number[] }
 }
 
@@ -37,6 +37,7 @@ declare module 'claude-code' {
       colorErr: number
       showWindows: string
       showTime: boolean
+      clockSetting: string
       sysLang: 'ru' | 'en'
       langSetting: 'auto' | 'ru' | 'en'
     }

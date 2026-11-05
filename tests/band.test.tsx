@@ -7,42 +7,74 @@ const BAND = {
   surface: 'terminal',
 } as const
 
-// Среда, 04.11.2026 13:00 по Москве
+// Среда, 04.11.2026 10:00 UTC
 const NOW = Date.parse('2026-11-04T10:00:00Z')
+const RESET_5H = '2026-11-04T12:10:00Z'
+const RESET_7D = '2026-11-07T14:00:00Z'
 
 const RATE_LIMITS = [
-  // 15:10 по Москве, сегодня
-  { kind: 'five_hour', percentUsed: 4, resetsAt: '2026-11-04T12:10:00Z' },
-  // суббота 17:00 по Москве
-  { kind: 'seven_day', percentUsed: 36, resetsAt: '2026-11-07T14:00:00Z' },
+  { kind: 'five_hour', percentUsed: 4, resetsAt: RESET_5H },
+  { kind: 'seven_day', percentUsed: 36, resetsAt: RESET_7D },
 ]
 
+// Ожидаемое время сброса — по часовому поясу машины, где идут тесты (плагин берёт его
+// из той же среды), с теми же правилами, что в плагине
+const WEEKDAYS = { ru: ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'], en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] }
+const padded = /^\D*0\d/.test(
+  new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(2026, 0, 1, 9, 5)),
+)
+const dayPartRu = (hour: number) => (hour < 4 ? 'ночи' : hour < 12 ? 'утра' : hour < 17 ? 'дня' : 'вечера')
+const expected = (iso: string, lang: 'ru' | 'en', clock: '12' | '24') => {
+  const d = new Date(iso)
+  const hour = d.getHours()
+  const minute = d.getMinutes()
+  const mm = String(minute).padStart(2, '0')
+  let time: string
+  if (clock === '24') {
+    time = `${padded ? String(hour).padStart(2, '0') : hour}:${mm}`
+  } else {
+    const h12 = String(hour % 12 || 12)
+    const hh = padded ? h12.padStart(2, '0') : h12
+    const tail = lang === 'ru' ? dayPartRu(hour) : hour < 12 ? 'am' : 'pm'
+    time = `${minute === 0 ? hh : `${hh}:${mm}`} ${tail}`
+  }
+  const now = new Date(NOW)
+  const dayOf = (x: Date) => Math.floor(Date.UTC(x.getFullYear(), x.getMonth(), x.getDate()) / 86_400_000)
+  const days = dayOf(d) - dayOf(now)
+  if (days <= 0) return time
+  if (days === 1) return `${lang === 'ru' ? 'завтра' : 'tomorrow'} ${time}`
+  return `${WEEKDAYS[lang][d.getDay()]} ${time}`
+}
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const runtimeLang = Intl.DateTimeFormat().resolvedOptions().locale.toLowerCase().startsWith('ru') ? 'ru' : 'en'
+
+// Язык и формат времени задаются явно через сохранённые настройки — тесты не зависят
+// от региона машины
 const setup = (
   on: Parameters<Parameters<typeof test>[1]>[1],
-  pattern: string,
-  ui = 'ru-RU',
-  extra = '',
+  clock: '12' | '24' = '24',
+  lang: 'ru' | 'en' = 'ru',
   stored: Record<string, unknown> = {},
 ) => {
+  const all: Record<string, unknown> = { clock, lang, ...stored }
   on('command.register', () => ({ value: { command: 'limits' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: NOW, context: {}, rateLimits: [] } }))
-  on('store.get', (_, e) => ({ value: stored[(e as { key: string }).key] }))
+  on('store.get', (_, e) => ({ value: all[(e as { key: string }).key] }))
   on('store.set', () => ({ value: undefined }))
   on('clock.now', () => ({ value: NOW }))
   on('clock.every', () => ({ value: { cancel: () => {} } }))
-  on('process.run', () => ({
-    value: { exitCode: 0, stdout: `${pattern}\r\n180\r\n${ui}\r\n${extra}`, stderr: '' },
-  }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
 }
 
 const measure = ($: Parameters<Parameters<typeof test>[1]>[0]) =>
   $.session.measure({ context: {}, changed: ['rateLimits'], rateLimits: RATE_LIMITS } as never)
 
-test('24-часовой формат: время сброса по Windows', async ($, on) => {
-  setup(on, 'H:mm')
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+const START = { cwd: '/', surface: 'terminal', isInteractive: true } as const
+
+test('24-часовой формат: проценты и время сброса', async ($, on) => {
+  setup(on, '24')
+  await $.session.start(START)
 
   let ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /первого ответа/ }))?.text).toBeTruthy()
@@ -50,28 +82,53 @@ test('24-часовой формат: время сброса по Windows', asy
 
   await measure($)
   ui = await $.ui.mount(BAND)
+  const r5 = expected(RESET_5H, 'ru', '24')
+  const r7 = expected(RESET_7D, 'ru', '24')
   expect((await ui.find({ type: 'Text', text: /4%/ }))?.text).toContain('4%')
-  expect((await ui.find({ type: 'Text', text: /↕ 15:10/ }))?.text).toContain('· ↕ 15:10')
+  expect((await ui.find({ type: 'Text', text: new RegExp(`↕ ${esc(r5)}$`) }))?.text).toContain(`· ↕ ${r5}`)
   expect((await ui.find({ type: 'Text', text: /36%/ }))?.text).toContain('36%')
-  expect((await ui.find({ type: 'Text', text: /↕ сб 17:00/ }))?.text).toContain('↕ сб 17:00')
+  expect((await ui.find({ type: 'Text', text: new RegExp(`↕ ${esc(r7)}$`) }))?.text).toContain(`↕ ${r7}`)
   await ui.unmount()
 })
 
-test('12-часовой формат: «3:10 дня», «5 вечера»', async ($, on) => {
-  setup(on, 'h:mm tt')
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+test('12-часовой формат по-русски: «дня», «вечера»', async ($, on) => {
+  setup(on, '12')
+  await $.session.start(START)
+  await measure($)
+  const ui = await $.ui.mount(BAND)
+  for (const iso of [RESET_5H, RESET_7D]) {
+    const r = expected(iso, 'ru', '12')
+    expect((await ui.find({ type: 'Text', text: new RegExp(`↕ ${esc(r)}$`) }))?.text).toContain(r)
+  }
+  await ui.unmount()
+})
+
+test('/limits clock 12|24|auto', async ($, on) => {
+  setup(on, '24')
+  on('command.run', () => ({ text: 'engine' }))
+  await $.session.start(START)
   await measure($)
 
-  const ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /↕ 3:10 дня/ }))?.text).toContain('↕ 3:10 дня')
-  expect((await ui.find({ type: 'Text', text: /↕ сб 5 вечера/ }))?.text).toContain('сб 5 вечера')
+  expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'clock' } as never))).toContain('24 часа')
+  expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'clock 12' } as never))).toContain('12 часов')
+  let ui = await $.ui.mount(BAND)
+  const r12 = expected(RESET_5H, 'ru', '12')
+  expect((await ui.find({ type: 'Text', text: new RegExp(`↕ ${esc(r12)}$`) }))?.text).toContain(r12)
+  await ui.unmount()
+
+  expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'clock auto' } as never))).toContain('как в системе')
+  expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'clock 25' } as never))).toContain('12|24|auto')
+  await $.command.run({ command: 'limits', args: 'clock 24' } as never)
+  ui = await $.ui.mount(BAND)
+  const r24 = expected(RESET_5H, 'ru', '24')
+  expect((await ui.find({ type: 'Text', text: new RegExp(`↕ ${esc(r24)}$`) }))?.text).toContain(r24)
   await ui.unmount()
 })
 
 test('скины: список, выбор по номеру и имени, отрисовка', async ($, on) => {
-  setup(on, 'H:mm')
+  setup(on)
   on('command.run', () => ({ text: 'engine' }))
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.session.start(START)
   await measure($)
 
   const list = await $.command.run({ command: 'limits', args: 'skin' } as never)
@@ -94,27 +151,28 @@ test('скины: список, выбор по номеру и имени, от
 })
 
 test('иконки Nerd Font: включение и выключение', async ($, on) => {
-  setup(on, 'H:mm')
+  setup(on)
   on('command.run', () => ({ text: 'engine' }))
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.session.start(START)
   await measure($)
+  const r5 = expected(RESET_5H, 'ru', '24')
 
   await $.command.run({ command: 'limits', args: 'icons nerd' } as never)
   let ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /\uF017 5ч/ }))?.text).toContain('5ч')
-  expect((await ui.find({ type: 'Text', text: /\uF021 15:10/ }))?.text).toContain('15:10')
+  expect((await ui.find({ type: 'Text', text: / 5ч/ }))?.text).toContain('5ч')
+  expect((await ui.find({ type: 'Text', text: new RegExp(` ${esc(r5)}$`) }))?.text).toContain(r5)
   await ui.unmount()
 
   await $.command.run({ command: 'limits', args: 'icons off' } as never)
   ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /↕ 15:10/ }))?.text).toContain('↕ 15:10')
+  expect((await ui.find({ type: 'Text', text: new RegExp(`↕ ${esc(r5)}$`) }))?.text).toContain(`↕ ${r5}`)
   await ui.unmount()
 })
 
-test('английская Windows: 5h / 7d, 12-часовой формат, Sat', async ($, on) => {
-  setup(on, 'h:mm tt', 'en-US')
+test('английский язык: 5h / 7d, 12-часовой формат, am/pm', async ($, on) => {
+  setup(on, '12', 'en')
   on('command.run', () => ({ text: 'engine' }))
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.session.start(START)
 
   let ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /first reply/ }))?.text).toBeTruthy()
@@ -124,8 +182,10 @@ test('английская Windows: 5h / 7d, 12-часовой формат, Sat
   ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /5h/ }))?.text).toContain('5h')
   expect((await ui.find({ type: 'Text', text: /7d/ }))?.text).toContain('7d')
-  expect((await ui.find({ type: 'Text', text: /↕ 3:10 pm/ }))?.text).toContain('↕ 3:10 pm')
-  expect((await ui.find({ type: 'Text', text: /↕ Sat 5 pm/ }))?.text).toContain('Sat 5 pm')
+  for (const iso of [RESET_5H, RESET_7D]) {
+    const r = expected(iso, 'en', '12')
+    expect((await ui.find({ type: 'Text', text: new RegExp(`↕ ${esc(r)}$`) }))?.text).toContain(r)
+  }
   await ui.unmount()
 
   const list = await $.command.run({ command: 'limits', args: 'skin' } as never)
@@ -134,58 +194,44 @@ test('английская Windows: 5h / 7d, 12-часовой формат, Sat
 })
 
 test('язык вручную: /limits lang ru|en|auto', async ($, on) => {
-  setup(on, 'H:mm', 'en-US')
+  setup(on, '24', 'en')
   on('command.run', () => ({ text: 'engine' }))
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.session.start(START)
   await measure($)
 
   const ru = await $.command.run({ command: 'limits', args: 'lang ru' } as never)
   expect(JSON.stringify(ru)).toContain('русский')
   let ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /5ч/ }))?.text).toContain('5ч')
-  expect((await ui.find({ type: 'Text', text: /↕ сб 17:00/ }))?.text).toContain('сб 17:00')
   await ui.unmount()
 
+  // auto — по региону системы, где идут тесты
   await $.command.run({ command: 'limits', args: 'lang auto' } as never)
   ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /↕ Sat 17:00/ }))?.text).toContain('Sat 17:00')
+  const label = runtimeLang === 'ru' ? /5ч/ : /5h/
+  expect((await ui.find({ type: 'Text', text: label }))?.text).toBeTruthy()
   await ui.unmount()
 })
 
 test('разделитель │ между 5ч и 7д', async ($, on) => {
-  setup(on, 'H:mm')
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  setup(on)
+  await $.session.start(START)
   await measure($)
   const ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /│/ }))?.text).toBe(' │ ')
   await ui.unmount()
 })
 
-test('перевод часов: время сброса по смещению на момент сброса', async ($, on) => {
-  // Таблица с начала текущего часа: 30 часов +3, дальше +2 (как будто перевели часы)
-  const list = [...Array(30).fill(180), ...Array(163).fill(120)].join(',')
-  setup(on, 'H:mm', 'ru-RU', `${NOW}\r\n${list}\r\n`)
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-  await measure($)
-
-  const ui = await $.ui.mount(BAND)
-  // 5ч: сброс через 2 часа — ещё +3 → 15:10
-  expect((await ui.find({ type: 'Text', text: /↕ 15:10/ }))?.text).toContain('15:10')
-  // 7д: сброс через 76 часов — уже +2 → 16:00, а не 17:00
-  expect((await ui.find({ type: 'Text', text: /↕ сб 16:00/ }))?.text).toContain('сб 16:00')
-  await ui.unmount()
-})
-
 test('узкое окно: полная строка → без времени сброса → только 5ч', async ($, on) => {
-  setup(on, 'H:mm')
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  setup(on)
+  await $.session.start(START)
   await measure($)
 
   const mountAt = (bodyColumns: number) =>
     $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns } } as never)
 
-  let ui = await mountAt(60)
-  expect((await ui.find({ type: 'Text', text: /↕ сб 17:00/ }))?.text).toBeTruthy()
+  let ui = await mountAt(70)
+  expect((await ui.find({ type: 'Text', text: /↕/ }))?.text).toBeTruthy()
   await ui.unmount()
 
   ui = await mountAt(40)
@@ -201,53 +247,10 @@ test('узкое окно: полная строка → без времени �
   await ui.unmount()
 })
 
-// Вывод скрипта для macOS/Linux: PowerShell нет, отвечает sh
-const unixSetup = (on: Parameters<Parameters<typeof test>[1]>[1], out: string) => {
-  on('command.register', () => ({ value: { command: 'limits' } }))
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('session.usage', () => ({ value: { startedAt: NOW, context: {}, rateLimits: [] } }))
-  on('store.get', () => ({ value: undefined }))
-  on('store.set', () => ({ value: undefined }))
-  on('clock.now', () => ({ value: NOW }))
-  on('clock.every', () => ({ value: { cancel: () => {} } }))
-  on('env.get', () => ({ value: undefined }))
-  on('process.run', (_, e) =>
-    (e as { argv: string[] }).argv[0] === 'powershell'
-      ? { value: { exitCode: 127, stdout: '', stderr: 'not found' } }
-      : { value: { exitCode: 0, stdout: out, stderr: '' } },
-  )
-  on('session.measure', (_, e) => ({ changed: e.changed }))
-}
-
-test('macOS, США: 12 часов по региону, перевод часов по таблице', async ($, on) => {
-  // Нью-Йорк: первые 30 часов −4, дальше −5
-  const zs = [...Array(30).fill('-0400'), ...Array(163).fill('-0500')].join(',')
-  unixSetup(on, `os=Darwin\nbase=${NOW / 1000}\nloc=en_US\nf24=\nf12=\nzs=${zs},\n`)
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-  await measure($)
-  const ui = await $.ui.mount(BAND)
-  // 5ч: 12:10Z при −4 → 8:10 am; 7д: сб 14:00Z при −5 → 9 am
-  expect((await ui.find({ type: 'Text', text: /↕ 8:10 am/ }))?.text).toContain('8:10 am')
-  expect((await ui.find({ type: 'Text', text: /↕ Sat 9 am/ }))?.text).toContain('Sat 9 am')
-  await ui.unmount()
-})
-
-test('Linux, ru_RU: 24 часа с ведущим нулём по locale, русский язык', async ($, on) => {
-  const zs = Array(193).fill('+0300').join(',')
-  unixSetup(on, `os=Linux\nbase=${NOW / 1000}\nloc=ru_RU.UTF-8\ntfmt=%H:%M:%S\nzs=${zs},\n`)
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-  await measure($)
-  const ui = await $.ui.mount(BAND)
-  expect((await ui.find({ type: 'Text', text: /5ч/ }))?.text).toContain('5ч')
-  expect((await ui.find({ type: 'Text', text: /↕ 15:10/ }))?.text).toContain('15:10')
-  expect((await ui.find({ type: 'Text', text: /↕ сб 17:00/ }))?.text).toContain('сб 17:00')
-  await ui.unmount()
-})
-
 test('скин squares: квадратики через пробел, второй в списке', async ($, on) => {
-  setup(on, 'H:mm')
+  setup(on)
   on('command.run', () => ({ text: 'engine' }))
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.session.start(START)
   await measure($)
 
   const list = await $.command.run({ command: 'limits', args: 'skin' } as never)
@@ -266,12 +269,12 @@ test('скин squares: квадратики через пробел, второ
 })
 
 test('цифры обновляются при каждом замере, даже без отметки rateLimits', async ($, on) => {
-  setup(on, 'H:mm')
+  setup(on)
   on('command.run', () => ({ text: 'engine' }))
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.session.start(START)
   await $.session.measure({
     context: {}, changed: ['rateLimits'],
-    rateLimits: [{ kind: 'five_hour', percentUsed: 19.4, resetsAt: '2026-11-04T12:10:00Z' }],
+    rateLimits: [{ kind: 'five_hour', percentUsed: 19.4, resetsAt: RESET_5H }],
   } as never)
   let ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /19%/ }))?.text).toContain('19%')
@@ -280,7 +283,7 @@ test('цифры обновляются при каждом замере, даж
   // Сдвиг меньше пункта: движок отмечает только context, но проценты уже 19,6
   await $.session.measure({
     context: {}, changed: ['context'],
-    rateLimits: [{ kind: 'five_hour', percentUsed: 19.6, resetsAt: '2026-11-04T12:10:00Z' }],
+    rateLimits: [{ kind: 'five_hour', percentUsed: 19.6, resetsAt: RESET_5H }],
   } as never)
   ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /20%/ }))?.text).toContain('20%')
@@ -293,9 +296,9 @@ test('цифры обновляются при каждом замере, даж
 
 test('перенос выбора со старых имён: segments → squares, старый squares → solid, alias', async ($, on) => {
   // В хранилище — выбор под старым именем segments, версии схемы ещё нет
-  setup(on, 'H:mm', 'ru-RU', '', { skin: 'segments' })
+  setup(on, '24', 'ru', { skin: 'segments' })
   on('command.run', () => ({ text: 'engine' }))
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.session.start(START)
   await measure($)
   let ui = await $.ui.mount(BAND)
   // Вид прежний — квадратики через пробел (7д 36% → 3 из 8)
@@ -313,8 +316,8 @@ test('перенос выбора со старых имён: segments → squar
 })
 
 test('перенос выбора: старый squares (слитно) → solid, вид не меняется', async ($, on) => {
-  setup(on, 'H:mm', 'ru-RU', '', { skin: 'squares' })
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  setup(on, '24', 'ru', { skin: 'squares' })
+  await $.session.start(START)
   await measure($)
   const ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /^■■■$/ }))?.text).toBe('■■■')
@@ -322,9 +325,9 @@ test('перенос выбора: старый squares (слитно) → solid
 })
 
 test('настройки вида: длина, пороги цветов, какие окна, время сброса', async ($, on) => {
-  setup(on, 'H:mm')
+  setup(on)
   on('command.run', () => ({ text: 'engine' }))
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.session.start(START)
   await measure($)
 
   // Длина: 7д 36% при 5 делениях → 2 заполнены, 3 пустых
@@ -369,9 +372,9 @@ test('настройки вида: длина, пороги цветов, как
 })
 
 test('повреждённые показания в хранилище не ломают полоску; склонение «деления»', async ($, on) => {
-  setup(on, 'H:mm', 'ru-RU', '', { 'last-limits': { five: { percent: 'abc' }, week: 5, at: 'x' } })
+  setup(on, '24', 'ru', { 'last-limits': { five: { percent: 'abc' }, week: 5, at: 'x' } })
   on('command.run', () => ({ text: 'engine' }))
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.session.start(START)
   const ui = await $.ui.mount(BAND)
   expect((await ui.find({ type: 'Text', text: /первого ответа/ }))?.text).toBeTruthy()
   expect(await ui.find({ type: 'Text', text: /NaN/ })).toBeFalsy()
@@ -380,4 +383,22 @@ test('повреждённые показания в хранилище не л�
   expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'width 4' } as never))).toContain('4 деления')
   expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'width 11' } as never))).toContain('11 делений')
   expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'width 8' } as never))).toContain('8 делений')
+})
+
+test('плагин не запускает программ и не читает переменные окружения', async ($, on) => {
+  setup(on)
+  const calls: string[] = []
+  on('process.run', () => {
+    calls.push('process.run')
+    return { value: { exitCode: 1, stdout: '', stderr: '' } }
+  })
+  on('env.get', () => {
+    calls.push('env.get')
+    return { value: undefined }
+  })
+  await $.session.start(START)
+  await measure($)
+  const ui = await $.ui.mount(BAND)
+  await ui.unmount()
+  expect(calls).toEqual([])
 })

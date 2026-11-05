@@ -32,7 +32,7 @@ What the bar shows:
   - "tomorrow 2:50 am" — if it happens the next day;
   - "Sat 5 pm" — if it happens on a specific day of the week.
 
-  The plugin takes the time zone and time format from the system settings: on Windows from the region settings (Settings → Time & language → Region), on macOS from Language & Region, on Linux from the locale. Daylight saving time is taken into account: if the clocks change before the limit resets, the reset time is shown in the new time.
+  The plugin takes the time zone and time format from the system settings: on Windows from the region (Settings → Time & language → Region), on macOS from Language & Region, on Linux from the locale. The 12- or 24-hour format is the one used in that region; to choose it yourself, use `/limits clock 12` or `/limits clock 24`. Daylight saving time is taken into account: if the clocks change before the limit resets, the reset time is shown in the new time.
 
   With a 12-hour format the time is shown as "3:10 pm", with a 24-hour format as "15:10".
 
@@ -72,6 +72,7 @@ Type all commands at the Claude Code prompt. For more detail, with a picture for
 | `/limits colors <yellow> <red>` | Color thresholds, e.g. `/limits colors 70 90`: green below 70%, yellow below 90%, red above (default 50 and 80) |
 | `/limits show both` / `5h` / `7d` | Which windows to show: both, 5h only or 7d only |
 | `/limits time on` / `off` | Show or hide the reset time |
+| `/limits clock 12` / `24` / `auto` | Time format: 12 or 24 hours, `auto` follows the system region (default) |
 | `/limits icons` | Show whether icons are on |
 | `/limits icons nerd` | Turn on Nerd Font icons (clock, calendar, refresh arrow) |
 | `/limits icons off` | Turn icons off |
@@ -113,8 +114,9 @@ If you see boxes instead of icons, the terminal uses a font without icons: a reg
 ## Language
 The plugin supports English and Russian. The interface language is detected automatically:
 
-- on Windows — from the region settings (Settings → Time & language → Region);
-- on macOS and Linux — from the `LANG` variable.
+- on Windows — from the region (Settings → Time & language → Region);
+- on macOS — from Language & Region;
+- on Linux — from the system locale.
 
 If the region is set to Russia, the interface is in Russian; in all other cases it is in English. The language of the operating system itself does not affect the choice: for example, even if Windows is in English but the region is set to Russia, the plugin shows its text in Russian.
 
@@ -134,16 +136,11 @@ To choose the language manually, use these commands:
 To go back to automatic language detection, type: `/limits lang auto`.
 
 ## Limitations
-- At startup the plugin runs one program once to read the system time zone, time format and region:
-  - Windows — PowerShell (`powershell -NoProfile -NonInteractive -Command …`): region settings (`Get-Culture`) and the time zone offset for the next 8 days;
-  - macOS and Linux — `sh`: the `uname`, `date`, `locale` commands, and on macOS `defaults read` (Language & Region settings).
-
-  Both commands are fixed text in `hooks/register.tsx`. The plugin sends nothing over the network, reads no files or environment variables, and stores only its own settings in the Claude Code storage.
-- What the plugin does in Claude Code: handles its own `/limits` command (other commands are untouched), receives the limit numbers from Claude Code after every reply, and draws the bar above the prompt.
+- What the plugin does in Claude Code: handles its own `/limits` command (other commands are untouched), receives the limit numbers from Claude Code after every reply, and draws the bar above the prompt. The plugin runs no programs, sends nothing over the network, and stores only its own settings in the Claude Code storage.
 - The bar shows usage as of Claude's last reply: the server sends the numbers with the reply, before that reply itself is counted. So it may lag behind `/usage` by 1–2% until the next reply arrives. Usage in other Claude Code windows, on claude.ai and by background agents also shows up only with the next reply in this session.
 - Works when you sign in to Claude Code with a Claude subscription (Pro, Max). With an API key there are no "5 hours / week" limits, so the bar stays empty.
 - The bar shows in Claude Code in a terminal (PowerShell, cmd, Git Bash, the VS Code terminal, Windows Terminal, iTerm2, etc.) and in the desktop app. It does not show in the Claude Code extension panel for VS Code, in the browser or in the mobile app; use `/usage` there.
-- The time format (12 or 24 hours) and the time zone come from the system settings. Tested on Windows; on macOS and Linux it works by the same rules but has been checked only by tests.
+- The time zone and time format come from the system region. If you changed the time format by hand in the settings (for example, turned on 12 hours in a 24-hour region), the plugin will not see it — choose the format with `/limits clock`. Tested on Windows; on macOS and Linux it works the same way but has been checked only by tests.
 - The plugin uses the Claude Code plugin API, which is still in early access (the plugin is tested on Claude Code 2.1.318). After major Claude Code updates the plugin may need an update.
 
 ## Update and removal

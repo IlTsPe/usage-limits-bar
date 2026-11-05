@@ -17,8 +17,7 @@ const COLORS_KEY = 'colors'
 const SHOW_KEY = 'show'
 const TIME_KEY = 'time'
 const LANG_KEY = 'lang'
-// Последний язык системы — чтобы при запуске сразу показать нужный язык
-const SYS_LANG_KEY = 'sys-lang'
+const CLOCK_KEY = 'clock'
 
 const limits = atom({ plugin: 'usage-limits', key: 'limits' } as const, null, {
   shape: 'limits-1',
@@ -26,7 +25,7 @@ const limits = atom({ plugin: 'usage-limits', key: 'limits' } as const, null, {
 // Текущее время — обновляется раз в минуту, чтобы пересчитывать сброс окна
 const now = atom({ plugin: 'usage-limits', key: 'now' } as const, 0)
 const isHidden = atom({ plugin: 'usage-limits', key: 'isHidden' } as const, false)
-// Формат времени и часовой пояс из настроек системы (читаются при запуске)
+// Формат времени и часовой пояс системы (читаются при запуске, из Intl)
 const timeFmt = atom({ plugin: 'usage-limits', key: 'timeFmt' } as const, null)
 // Выбранный скин полоски (id из skins.ts)
 const skin = atom({ plugin: 'usage-limits', key: 'skin' } as const, DEFAULT_SKIN)
@@ -38,7 +37,9 @@ const colorWarn = atom({ plugin: 'usage-limits', key: 'colorWarn' } as const, 50
 const colorErr = atom({ plugin: 'usage-limits', key: 'colorErr' } as const, 80)
 const showWindows = atom({ plugin: 'usage-limits', key: 'showWindows' } as const, 'both')
 const showTime = atom({ plugin: 'usage-limits', key: 'showTime' } as const, true)
-// Язык системы (Windows — региональные настройки, macOS/Linux — LANG)
+// Ручной выбор 12/24 часов: auto — как в системе
+const clockSetting = atom({ plugin: 'usage-limits', key: 'clockSetting' } as const, 'auto')
+// Язык системы — по региону (локали) среды выполнения
 const sysLang = atom({ plugin: 'usage-limits', key: 'sysLang' } as const, 'en')
 // Выбор пользователя: auto — по языку системы
 const langSetting = atom({ plugin: 'usage-limits', key: 'langSetting' } as const, 'auto')
@@ -138,128 +139,41 @@ export const resetText = (resetsAt: number, nowMs: number, fmt: TimeFormat, lang
   return `${t.weekdays[at.getUTCDay()]} ${time}`
 }
 
-// Разбирает вывод PowerShell: шаблон короткого времени и смещение от UTC в минутах (строки 1–2)
-export const parseTimeFormat = (stdout: string): TimeFormat | null => {
-  const [pattern, offset] = stdout.split(/\r?\n/).map(s => s.trim())
-  const offsetMin = Number(offset)
-  if (!pattern || !Number.isFinite(offsetMin)) return null
-  return {
-    is24h: pattern.includes('H'),
-    isPadded: /HH|hh/.test(pattern),
-    offsetMin,
-  }
-}
-
-// Почасовая таблица смещений — строки 4–5 вывода PowerShell: начало (мс UTC) и смещения через запятую
-export const parseOffsets = (stdout: string): TimeFormat['offsets'] => {
-  const lines = stdout.split(/\r?\n/).map(s => s.trim())
-  const base = Number(lines[3])
-  const list = (lines[4] ?? '').split(',').map(Number)
-  if (!Number.isFinite(base) || list.length === 0 || list.some(n => !Number.isFinite(n))) return undefined
-  return { base, list }
-}
-
-// Формат по умолчанию, если Windows ответить не смог: 24 часа, пояс среды
+// Формат по умолчанию, если Intl недоступен: 24 часа, пояс среды
 const fallbackFormat = (): TimeFormat => ({
   is24h: true,
   isPadded: false,
   offsetMin: -new Date().getTimezoneOffset(),
 })
 
-// Язык по региональным настройкам Windows (Get-Culture) — третья строка вывода PowerShell.
-// Не язык интерфейса: многие ставят английскую Windows, но русский формат даты и времени
-export const parseUiLang = (stdout: string): Lang | null => {
-  const ui = stdout.split(/\r?\n/).map(s => s.trim())[2]
-  return ui ? langFromLocale(ui) : null
-}
-
-// Страны, где по умолчанию 12-часовой формат (если пользователь не задал явно)
-const TWELVE_HOUR_REGIONS = new Set(['US', 'CA', 'AU', 'NZ', 'IN', 'PH', 'PK', 'BD', 'EG', 'SA'])
-
-// «+0300» → 180, «-0430» → -270
-export const zoneToMinutes = (z: string): number | null => {
-  const m = /^([+-])(\d{2})(\d{2})$/.exec(z.trim())
-  if (!m) return null
-  const v = Number(m[2]) * 60 + Number(m[3])
-  return m[1] === '-' ? -v : v
-}
-
-// Разбирает вывод скрипта sh из loadSystem
-export const parseUnix = (stdout: string): { fmt: TimeFormat; lang: Lang } | null => {
-  const kv: Record<string, string> = {}
-  for (const line of stdout.split(/\r?\n/)) {
-    const i = line.indexOf('=')
-    if (i > 0) kv[line.slice(0, i)] = line.slice(i + 1).trim()
-  }
-  const zs = (kv.zs ?? '').split(',').filter(Boolean).map(zoneToMinutes)
-  if (zs.length === 0 || zs.some(v => v === null)) return null
-  const list = zs as number[]
-  const loc = kv.loc ?? ''
-  const region = (/^[a-z]{2,3}[_-]([A-Z]{2})/i.exec(loc)?.[1] ?? '').toUpperCase()
-  const tfmt = kv.tfmt ?? ''
-  let is24h: boolean
-  let isPadded = false
-  if (kv.f24 === '1') is24h = true
-  else if (kv.f12 === '1') is24h = false
-  else if (tfmt) {
-    // Linux: формат времени локали — %r, %I, %l, %p означают 12 часов
-    is24h = !/%[rIlp]/.test(tfmt)
-    isPadded = /%[HT]/.test(tfmt)
-  } else is24h = !TWELVE_HOUR_REGIONS.has(region)
-  const base = Number(kv.base) * 1000
-  const fmt: TimeFormat = {
-    is24h,
-    isPadded,
-    offsetMin: list[0] as number,
-    ...(Number.isFinite(base) ? { offsets: { base, list } } : {}),
-  }
-  return { fmt, lang: langFromLocale(loc) }
-}
-
-// Язык по умолчанию, если система не ответила: локаль среды выполнения (без чтения переменных окружения)
-const runtimeLang = (): Lang => {
+// Настройки системы — без запуска программ: регион, язык, 12/24 часа и часовой пояс
+// берутся из Intl и Date среды выполнения (она читает их из системы).
+// Таблица смещений на 8 суток вперёд — чтобы перевод часов между «сейчас» и сбросом
+// не сдвигал время на час (getTimezoneOffset учитывает летнее время для каждого момента)
+export const readSystem = (nowMs: number): { fmt: TimeFormat; lang: Lang } => {
   try {
-    return langFromLocale(Intl.DateTimeFormat().resolvedOptions().locale)
-  } catch {
-    return 'en'
-  }
-}
-
-// Читает формат времени, часовой пояс и язык. Обе команды — неизменный текст, без данных
-// пользователя; описаны в README («Ограничения»). Ничего не отправляют в сеть.
-// Windows — PowerShell, строки вывода: формат времени; смещение от UTC сейчас; регион;
-// начало таблицы (мс UTC, ровный час); смещения на каждый час ближайших 8 суток.
-// macOS и Linux — sh, строки «ключ=значение»: система, начало таблицы, регион,
-// настройки 12/24 часов, смещения на каждый час ближайших 8 суток.
-async function loadSystem($: EngineInterface): Promise<{ fmt: TimeFormat; lang: Lang }> {
-  try {
-    const { exitCode, stdout } = await $.process.run(
-      ['powershell', '-NoProfile', '-NonInteractive', '-Command', '(Get-Culture).DateTimeFormat.ShortTimePattern; [int][TimeZoneInfo]::Local.GetUtcOffset([DateTime]::UtcNow).TotalMinutes; (Get-Culture).Name; $b = [DateTime]::UtcNow; $b = $b.AddTicks(-($b.Ticks % 36000000000)); [long]($b - [DateTime]::new(1970, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)).TotalMilliseconds; ((0..192) | ForEach-Object { [int][TimeZoneInfo]::Local.GetUtcOffset($b.AddHours($_)).TotalMinutes }) -join \',\''],
-      { timeoutMs: 10_000 },
-    )
-    if (exitCode === 0) {
-      const parsed = parseTimeFormat(stdout)
-      const lang = parseUiLang(stdout)
-      const offsets = parseOffsets(stdout)
-      if (parsed && lang) return { fmt: offsets ? { ...parsed, offsets } : parsed, lang }
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale
+    const hc = new Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hourCycle
+    const is24h = hc === 'h23' || hc === 'h24'
+    // Ведущий ноль: как система пишет 9:05 — «09:05» или «9:05»
+    const nine = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(2026, 0, 1, 9, 5))
+    const isPadded = /^\D*0\d/.test(nine)
+    const base = nowMs - (nowMs % HOUR)
+    const list = Array.from({ length: 193 }, (_, i) => -new Date(base + i * HOUR).getTimezoneOffset())
+    return {
+      fmt: { is24h, isPadded, offsetMin: -new Date(nowMs).getTimezoneOffset(), offsets: { base, list } },
+      lang: langFromLocale(locale),
     }
   } catch {
-    // не Windows или PowerShell недоступен
+    return { fmt: fallbackFormat(), lang: 'en' }
   }
-  try {
-    const { exitCode, stdout } = await $.process.run(
-      ['sh', '-c', 'os=$(uname -s); now=$(date +%s); base=$((now - now % 3600))\necho "os=$os"; echo "base=$base"\nif [ "$os" = Darwin ]; then\n  echo "loc=$(defaults read -g AppleLocale 2>/dev/null)"\n  echo "f24=$(defaults read -g AppleICUForce24HourTime 2>/dev/null)"\n  echo "f12=$(defaults read -g AppleICUForce12HourTime 2>/dev/null)"\nelse\n  echo "loc=${LC_ALL:-${LC_TIME:-$LANG}}"\n  echo "tfmt=$(locale t_fmt 2>/dev/null)"\nfi\nzs=""\nif date -d @0 +%z >/dev/null 2>&1; then\n  zs=$(i=0; while [ $i -le 192 ]; do echo "@$((base + i * 3600))"; i=$((i + 1)); done | date -f - +%z | tr "\\n" ",")\nelse\n  i=0; while [ $i -le 192 ]; do zs="$zs$(date -r $((base + i * 3600)) +%z),"; i=$((i + 1)); done\nfi\necho "zs=$zs"'],
-      { timeoutMs: 10_000 },
-    )
-    if (exitCode === 0) {
-      const unix = parseUnix(stdout)
-      if (unix) return unix
-    }
-  } catch {
-    // нет sh
-  }
-  return { fmt: fallbackFormat(), lang: runtimeLang() }
 }
+
+// Ручной выбор 12/24 часов (/limits clock) поверх системного формата
+type Clock = 'auto' | '12' | '24'
+const isClock = (v: unknown): v is Clock => v === 'auto' || v === '12' || v === '24'
+const withClock = (fmt: TimeFormat, clock: Clock): TimeFormat =>
+  clock === 'auto' ? fmt : { ...fmt, is24h: clock === '24' }
 
 // Те же цифры, что уже показаны: окна совпадают по проценту и времени сброса
 const sameLimits = (a: Limits | null, b: Limits): boolean =>
@@ -285,8 +199,8 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'limits',
-      description: 'Usage limits bar / Полоска лимитов: show/hide · skin · icons · lang · width · colors · show · time · debug',
-      argumentHint: '[skin [n|name] | icons nerd|off | lang ru|en|auto | width 4…16 | colors 50 80 | show both|5h|7d | time on|off | debug]',
+      description: 'Usage limits bar / Полоска лимитов: show/hide · skin · icons · lang · width · colors · show · time · clock · debug',
+      argumentHint: '[skin [n|name] | icons nerd|off | lang ru|en|auto | width 4…16 | colors 50 80 | show both|5h|7d | time on|off | clock 12|24|auto | debug]',
     })
 
     const at = await $.clock.now()
@@ -299,8 +213,12 @@ export const register: Register = on => {
     if ((await $.store.get(ICONS_KEY)) === 'nerd') await update($, isNerd, () => true)
     const storedLang = await $.store.get(LANG_KEY)
     await update($, langSetting, () => (isLangSetting(storedLang) ? storedLang : 'auto'))
-    const storedSys = await $.store.get(SYS_LANG_KEY)
-    await update($, sysLang, () => (storedSys === 'ru' || storedSys === 'en' ? storedSys : 'en'))
+    // Регион, язык, формат времени и часовой пояс — из системы, без запуска программ
+    const system = readSystem(at)
+    await update($, timeFmt, () => system.fmt)
+    await update($, sysLang, () => system.lang)
+    const storedClock = await $.store.get(CLOCK_KEY)
+    await update($, clockSetting, () => (isClock(storedClock) ? storedClock : 'auto'))
     // Настройки вида: значение из хранилища, если оно корректное, иначе по умолчанию
     const storedWidth = await $.store.get(WIDTH_KEY)
     await update($, barWidth, () => (isWidth(storedWidth) ? storedWidth : CELLS))
@@ -321,17 +239,6 @@ export const register: Register = on => {
       await $.store.set(SKIN_SCHEMA_KEY, SKIN_SCHEMA)
     }
     await update($, skin, () => skinById(typeof storedSkin === 'string' ? storedSkin : undefined).id)
-
-    // Формат времени и язык системы читаем в фоне, чтобы не задерживать запуск
-    void loadSystem($)
-      .then(async ({ fmt, lang }) => {
-        await update($, timeFmt, () => fmt)
-        await update($, sysLang, () => lang)
-        await $.store.set(SYS_LANG_KEY, lang)
-      })
-      .catch(() => {
-        // сессия закрылась раньше, чем ответила система, — останутся значения по умолчанию
-      })
 
     // Сначала — свежие данные движка, если уже есть
     const usage = await $.session.usage()
@@ -443,10 +350,18 @@ export const register: Register = on => {
       await $.store.set(TIME_KEY, mode)
       return { text: t.timeSet(mode === 'on') }
     }
+    // /limits clock 12|24|auto
+    if (sub.toLowerCase() === 'clock') {
+      const mode = (rest[0] ?? '').toLowerCase()
+      if (!isClock(mode)) return { text: t.clockState((await read($, clockSetting)) as Clock) }
+      await update($, clockSetting, () => mode)
+      await $.store.set(CLOCK_KEY, mode)
+      return { text: t.clockSet(mode) }
+    }
     // /limits debug — точные значения с десятыми и время получения
     if (sub.toLowerCase() === 'debug') {
       const data = await read($, limits)
-      const fmt = (await read($, timeFmt)) ?? fallbackFormat()
+      const fmt = withClock((await read($, timeFmt)) ?? fallbackFormat(), (await read($, clockSetting)) as Clock)
       const nowMs = await $.clock.now()
       const row = (label: string, w: Window | null) =>
         w
@@ -474,7 +389,7 @@ export const register: Register = on => {
     const { Box, Text } = $.ui.resolve(e)
     const data = await read($, limits)
     const t = (await read($, now)) || (await $.clock.now())
-    const fmt = (await read($, timeFmt)) ?? fallbackFormat()
+    const fmt = withClock((await read($, timeFmt)) ?? fallbackFormat(), (await read($, clockSetting)) as Clock)
     const look = skinById(await read($, skin))
     const nerd = await read($, isNerd)
     const lang = langOf(await read($, langSetting), await read($, sysLang))

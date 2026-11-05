@@ -9,6 +9,7 @@
   <a href="#color-thresholds">Colors</a> ·
   <a href="#which-windows-to-show">Windows</a> ·
   <a href="#reset-time">Reset time</a> ·
+  <a href="#time-format">Time format</a> ·
   <a href="#icons">Icons</a> ·
   <a href="#language">Language</a> ·
   <a href="#exact-values">Exact values</a>
@@ -91,6 +92,19 @@ The first number must be smaller than the second, both from 1 to 100. Otherwise 
 **`off` — hide**
 
 <p align="center"><img src="docs/commands/en-time-off.png" alt="/limits time off" width="420"></p>
+
+## Time format
+`/limits clock <value>` sets 12 or 24 hours for the reset time. The default, `auto`, uses the format of the system region. Useful if you changed the time format by hand in the system settings: the plugin sees only the region format.
+
+**`12` — 12 hours**
+
+<p align="center"><img src="docs/commands/en-clock-12.png" alt="/limits clock 12" width="669"></p>
+
+**`24` — 24 hours**
+
+<p align="center"><img src="docs/commands/en-clock-24.png" alt="/limits clock 24" width="658"></p>
+
+**`auto` — as in the system region (default)**
 
 ## Icons
 `/limits icons nerd` turns on clock, calendar and refresh icons; `/limits icons off` turns them off. A Nerd Font is needed in the terminal — see [Icons](README.en.md#icons) in the plugin overview.
