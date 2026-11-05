@@ -133,8 +133,73 @@ export const parseUiLang = (stdout: string): Lang | null => {
   return ui ? langFromLocale(ui) : null
 }
 
-// Читает формат времени, часовой пояс и язык из региональных настроек Windows;
-// вне Windows — язык из LANG, формат по умолчанию
+// Скрипт для macOS и Linux: система, регион, настройки 12/24 часов и смещения от UTC
+// на каждый час ближайших 8 суток (как в Windows) — строки «ключ=значение»
+const UNIX_PROBE = [
+  'os=$(uname -s); now=$(date +%s); base=$((now - now % 3600))',
+  'echo "os=$os"; echo "base=$base"',
+  'if [ "$os" = Darwin ]; then',
+  '  echo "loc=$(defaults read -g AppleLocale 2>/dev/null)"',
+  '  echo "f24=$(defaults read -g AppleICUForce24HourTime 2>/dev/null)"',
+  '  echo "f12=$(defaults read -g AppleICUForce12HourTime 2>/dev/null)"',
+  'else',
+  '  echo "loc=${LC_ALL:-${LC_TIME:-$LANG}}"',
+  '  echo "tfmt=$(locale t_fmt 2>/dev/null)"',
+  'fi',
+  'zs=""',
+  'if date -d @0 +%z >/dev/null 2>&1; then',
+  '  zs=$(i=0; while [ $i -le 192 ]; do echo "@$((base + i * 3600))"; i=$((i + 1)); done | date -f - +%z | tr "\\n" ",")',
+  'else',
+  '  i=0; while [ $i -le 192 ]; do zs="$zs$(date -r $((base + i * 3600)) +%z),"; i=$((i + 1)); done',
+  'fi',
+  'echo "zs=$zs"',
+].join('\n')
+
+// Страны, где по умолчанию 12-часовой формат (если пользователь не задал явно)
+const TWELVE_HOUR_REGIONS = new Set(['US', 'CA', 'AU', 'NZ', 'IN', 'PH', 'PK', 'BD', 'EG', 'SA'])
+
+// «+0300» → 180, «-0430» → -270
+export const zoneToMinutes = (z: string): number | null => {
+  const m = /^([+-])(\d{2})(\d{2})$/.exec(z.trim())
+  if (!m) return null
+  const v = Number(m[2]) * 60 + Number(m[3])
+  return m[1] === '-' ? -v : v
+}
+
+// Разбирает вывод UNIX_PROBE
+export const parseUnix = (stdout: string): { fmt: TimeFormat; lang: Lang } | null => {
+  const kv: Record<string, string> = {}
+  for (const line of stdout.split(/\r?\n/)) {
+    const i = line.indexOf('=')
+    if (i > 0) kv[line.slice(0, i)] = line.slice(i + 1).trim()
+  }
+  const zs = (kv.zs ?? '').split(',').filter(Boolean).map(zoneToMinutes)
+  if (zs.length === 0 || zs.some(v => v === null)) return null
+  const list = zs as number[]
+  const loc = kv.loc ?? ''
+  const region = (/^[a-z]{2,3}[_-]([A-Z]{2})/i.exec(loc)?.[1] ?? '').toUpperCase()
+  const tfmt = kv.tfmt ?? ''
+  let is24h: boolean
+  let isPadded = false
+  if (kv.f24 === '1') is24h = true
+  else if (kv.f12 === '1') is24h = false
+  else if (tfmt) {
+    // Linux: формат времени локали — %r, %I, %l, %p означают 12 часов
+    is24h = !/%[rIlp]/.test(tfmt)
+    isPadded = /%[HT]/.test(tfmt)
+  } else is24h = !TWELVE_HOUR_REGIONS.has(region)
+  const base = Number(kv.base) * 1000
+  const fmt: TimeFormat = {
+    is24h,
+    isPadded,
+    offsetMin: list[0] as number,
+    ...(Number.isFinite(base) ? { offsets: { base, list } } : {}),
+  }
+  return { fmt, lang: langFromLocale(loc) }
+}
+
+// Читает формат времени, часовой пояс и язык: Windows — через PowerShell,
+// macOS и Linux — через sh; если не вышло — язык из LANG, формат по умолчанию
 async function loadSystem($: EngineInterface): Promise<{ fmt: TimeFormat; lang: Lang }> {
   try {
     const { exitCode, stdout } = await $.process.run(
@@ -162,6 +227,16 @@ async function loadSystem($: EngineInterface): Promise<{ fmt: TimeFormat; lang: 
     }
   } catch {
     // не Windows или PowerShell недоступен
+  }
+  // macOS и Linux
+  try {
+    const { exitCode, stdout } = await $.process.run(['sh', '-c', UNIX_PROBE], { timeoutMs: 10_000 })
+    if (exitCode === 0) {
+      const unix = parseUnix(stdout)
+      if (unix) return unix
+    }
+  } catch {
+    // нет sh
   }
   return { fmt: fallbackFormat(), lang: langFromLocale(await $.env.get('LANG')) }
 }

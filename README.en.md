@@ -32,7 +32,7 @@ What the bar shows:
   - "tomorrow 2:50 am" — if it happens the next day;
   - "Sat 5 pm" — if it happens on a specific day of the week.
 
-  The plugin takes the time zone and time format from your Windows region settings (Settings → Time & language → Region). Daylight saving time is taken into account: if the clocks change before the limit resets, the reset time is shown in the new time.
+  The plugin takes the time zone and time format from the system settings: on Windows from the region settings (Settings → Time & language → Region), on macOS from Language & Region, on Linux from the locale. Daylight saving time is taken into account: if the clocks change before the limit resets, the reset time is shown in the new time.
 
   With a 12-hour format the time is shown as "3:10 pm", with a 24-hour format as "15:10".
 
@@ -79,7 +79,7 @@ You can also collapse the bar with the Claude Code shortcut **Ctrl+X**, then **C
 ## Skins
 A skin changes how the bar looks. All skins work with the standard fonts of Windows, macOS and Linux.
 
-<p align="center"><img src="docs/skins.png" alt="Six bar skins: line, thin, double, blocks, squares, dots" width="40%"></p>
+<p align="center"><img src="docs/skins.png" alt="Six bar skins: line, segments, double, blocks, squares, dots" width="40%"></p>
 
 The look depends on the terminal font: for example, in the standard Windows console the squares of the `squares` skin have small gaps between them.
 
@@ -130,7 +130,7 @@ To go back to automatic language detection, type: `/limits lang auto`.
 ## Limitations
 - Works when you sign in to Claude Code with a Claude subscription (Pro, Max). With an API key there are no "5 hours / week" limits, so the bar stays empty.
 - The bar shows in Claude Code in a terminal (PowerShell, cmd, Git Bash, the VS Code terminal, Windows Terminal, iTerm2, etc.) and in the desktop app. It does not show in the Claude Code extension panel for VS Code, in the browser or in the mobile app; use `/usage` there.
-- On Windows, the time format (12 or 24 hours) and the time zone come from the system settings. On macOS and Linux the time is shown in the 24-hour format in the system time zone.
+- The time format (12 or 24 hours) and the time zone come from the system settings. Tested on Windows; on macOS and Linux it works by the same rules but has been checked only by tests.
 - The plugin uses the Claude Code plugin API, which is still in early access (the plugin is tested on Claude Code 2.1.318). After major Claude Code updates the plugin may need an update.
 
 ## Update and removal

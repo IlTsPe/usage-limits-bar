@@ -194,3 +194,65 @@ test('узкое окно: полная строка → без времени �
   expect(await ui.find({ type: 'Text', text: /│/ })).toBeFalsy()
   await ui.unmount()
 })
+
+// Вывод скрипта для macOS/Linux: PowerShell нет, отвечает sh
+const unixSetup = (on: Parameters<Parameters<typeof test>[1]>[1], out: string) => {
+  on('command.register', () => ({ value: { command: 'limits' } }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('session.usage', () => ({ value: { startedAt: NOW, context: {}, rateLimits: [] } }))
+  on('store.get', () => ({ value: undefined }))
+  on('store.set', () => ({ value: undefined }))
+  on('clock.now', () => ({ value: NOW }))
+  on('clock.every', () => ({ value: { cancel: () => {} } }))
+  on('env.get', () => ({ value: undefined }))
+  on('process.run', (_, e) =>
+    (e as { argv: string[] }).argv[0] === 'powershell'
+      ? { value: { exitCode: 127, stdout: '', stderr: 'not found' } }
+      : { value: { exitCode: 0, stdout: out, stderr: '' } },
+  )
+  on('session.measure', (_, e) => ({ changed: e.changed }))
+}
+
+test('macOS, США: 12 часов по региону, перевод часов по таблице', async ($, on) => {
+  // Нью-Йорк: первые 30 часов −4, дальше −5
+  const zs = [...Array(30).fill('-0400'), ...Array(163).fill('-0500')].join(',')
+  unixSetup(on, `os=Darwin\nbase=${NOW / 1000}\nloc=en_US\nf24=\nf12=\nzs=${zs},\n`)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await measure($)
+  const ui = await $.ui.mount(BAND)
+  // 5ч: 12:10Z при −4 → 8:10 am; 7д: сб 14:00Z при −5 → 9 am
+  expect((await ui.find({ type: 'Text', text: /↕ 8:10 am/ }))?.text).toContain('8:10 am')
+  expect((await ui.find({ type: 'Text', text: /↕ Sat 9 am/ }))?.text).toContain('Sat 9 am')
+  await ui.unmount()
+})
+
+test('Linux, ru_RU: 24 часа с ведущим нулём по locale, русский язык', async ($, on) => {
+  const zs = Array(193).fill('+0300').join(',')
+  unixSetup(on, `os=Linux\nbase=${NOW / 1000}\nloc=ru_RU.UTF-8\ntfmt=%H:%M:%S\nzs=${zs},\n`)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await measure($)
+  const ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /5ч/ }))?.text).toContain('5ч')
+  expect((await ui.find({ type: 'Text', text: /↕ 15:10/ }))?.text).toContain('15:10')
+  expect((await ui.find({ type: 'Text', text: /↕ сб 17:00/ }))?.text).toContain('сб 17:00')
+  await ui.unmount()
+})
+
+test('скин segments: квадратики через пробел, второй в списке', async ($, on) => {
+  setup(on, 'H:mm')
+  on('command.run', () => ({ text: 'engine' }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await measure($)
+
+  const list = await $.command.run({ command: 'limits', args: 'skin' } as never)
+  expect(JSON.stringify(list)).toContain('2  ')
+  expect(JSON.stringify(list)).toContain('segments')
+  expect(JSON.stringify(list)).not.toContain('thin')
+
+  await $.command.run({ command: 'limits', args: 'skin 2' } as never)
+  const ui = await $.ui.mount(BAND)
+  // 7д: 36% → 3 из 8 заполнены
+  expect((await ui.find({ type: 'Text', text: /^■ ■ ■ $/ }))?.text).toBe('■ ■ ■ ')
+  expect((await ui.find({ type: 'Text', text: /^■ ■ ■ ■ ■$/ }))?.text).toBe('■ ■ ■ ■ ■')
+  await ui.unmount()
+})
