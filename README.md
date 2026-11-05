@@ -61,7 +61,7 @@ claude plugin install usage-limits --marketplace IlTsPe/usage-limits-bar
 В десктоп-приложении Claude: «+» рядом с полем ввода → Plugins → Add marketplace → `IlTsPe/usage-limits-bar` → Add plugin.
 
 ## Команды
-Все команды вводятся в поле ввода Claude Code.
+Все команды вводятся в поле ввода Claude Code. Подробнее, с картинками по каждой команде, — на странице [COMMANDS.md](COMMANDS.md).
 
 | Команда | Что делает |
 | --- | --- |
