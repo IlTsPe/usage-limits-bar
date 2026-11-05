@@ -154,14 +154,8 @@ The plugin is free. If it helps you and you want to thank the author, support th
 Found a bug or have an idea? Open an [issue](https://github.com/IlTsPe/usage-limits-bar/issues).
 
 ## License
-© 2026 Ilya Tsygankov. The plugin is distributed under the [PolyForm Shield 1.0.0](LICENSE) license:
+© 2026 Ilya Tsygankov. The plugin is distributed under the [MIT](LICENSE) license: you may use it for free, change it, share it and use it in your own projects, including commercial ones. The only condition is to keep the copyright line and the license text in all copies.
 
-- anyone may install and use it for free, at home and at work;
-- you may change the code, make your own versions and send fixes;
-- you may not sell the plugin or modified versions of it, or build a competing product on it — even a free one.
-
-By sending a fix (pull request), you agree that it is distributed under the same terms.
-
-Full text: [LICENSE](LICENSE).
+The plugin is provided "as is", without warranty. Full text: [LICENSE](LICENSE).
 
 Claude and Claude Code are Anthropic products. This plugin is an independent project and is not affiliated with Anthropic.
