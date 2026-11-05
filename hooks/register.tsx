@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, SessionRateLimit } from 'claude-code'
 
 import type { Limits, TimeFormat, Window } from '../types'
-import { DEFAULT_SKIN, SKIN_SCHEMA, barParts, findSkin, migrateSkinId, skinById, skinsList } from './skins'
+import { CELLS, DEFAULT_SKIN, MAX_CELLS, MIN_CELLS, SKIN_SCHEMA, barParts, findSkin, migrateSkinId, skinById, skinsList } from './skins'
 import { STRINGS, langFromLocale } from './i18n'
 import type { Lang, LangSetting } from './i18n'
 
@@ -12,6 +12,10 @@ const SKIN_KEY = 'skin'
 // Версия имён скинов в хранилище: до 2 — старые имена (segments, squares)
 const SKIN_SCHEMA_KEY = 'skin-schema'
 const ICONS_KEY = 'icons'
+const WIDTH_KEY = 'width'
+const COLORS_KEY = 'colors'
+const SHOW_KEY = 'show'
+const TIME_KEY = 'time'
 const LANG_KEY = 'lang'
 // Последний язык системы — чтобы при запуске сразу показать нужный язык
 const SYS_LANG_KEY = 'sys-lang'
@@ -22,12 +26,18 @@ const limits = atom({ plugin: 'usage-limits', key: 'limits' } as const, null, {
 // Текущее время — обновляется раз в минуту, чтобы пересчитывать сброс окна
 const now = atom({ plugin: 'usage-limits', key: 'now' } as const, 0)
 const isHidden = atom({ plugin: 'usage-limits', key: 'isHidden' } as const, false)
-// Формат времени из настроек Windows (читается при запуске)
+// Формат времени и часовой пояс из настроек системы (читаются при запуске)
 const timeFmt = atom({ plugin: 'usage-limits', key: 'timeFmt' } as const, null)
 // Выбранный скин полоски (id из skins.ts)
 const skin = atom({ plugin: 'usage-limits', key: 'skin' } as const, DEFAULT_SKIN)
 // Иконки Nerd Fonts (нужен шрифт Nerd Font в терминале)
 const isNerd = atom({ plugin: 'usage-limits', key: 'isNerd' } as const, false)
+// Настройки вида: длина полоски, пороги цветов, какие окна показывать, время сброса
+const barWidth = atom({ plugin: 'usage-limits', key: 'barWidth' } as const, CELLS)
+const colorWarn = atom({ plugin: 'usage-limits', key: 'colorWarn' } as const, 50)
+const colorErr = atom({ plugin: 'usage-limits', key: 'colorErr' } as const, 80)
+const showWindows = atom({ plugin: 'usage-limits', key: 'showWindows' } as const, 'both')
+const showTime = atom({ plugin: 'usage-limits', key: 'showTime' } as const, true)
 // Язык системы (Windows — региональные настройки, macOS/Linux — LANG)
 const sysLang = atom({ plugin: 'usage-limits', key: 'sysLang' } as const, 'en')
 // Выбор пользователя: auto — по языку системы
@@ -54,8 +64,35 @@ const fromRateLimits = (list: readonly SessionRateLimit[], at: number): Limits |
   return { five, week, at, isStale: false }
 }
 
-const colorOf = (percent: number) =>
-  percent >= 80 ? 'error' : percent >= 50 ? 'warning' : 'success'
+// Проверка формата показаний из хранилища: от старой версии или повреждённые — отбрасываем
+const isWindow = (v: unknown): v is Window =>
+  !!v &&
+  typeof v === 'object' &&
+  Number.isFinite((v as Window).percent) &&
+  ((v as Window).resetsAt === null || Number.isFinite((v as Window).resetsAt))
+export const isLimits = (v: unknown): v is Limits => {
+  if (!v || typeof v !== 'object') return false
+  const l = v as Limits
+  return (
+    Number.isFinite(l.at) &&
+    (l.five === null || isWindow(l.five)) &&
+    (l.week === null || isWindow(l.week)) &&
+    (l.five !== null || l.week !== null)
+  )
+}
+
+const colorOf = (percent: number, warn = 50, err = 80) =>
+  percent >= err ? 'error' : percent >= warn ? 'warning' : 'success'
+
+type Show = 'both' | '5h' | '7d'
+const isShow = (v: unknown): v is Show => v === 'both' || v === '5h' || v === '7d'
+const isWidth = (n: unknown): n is number =>
+  typeof n === 'number' && Number.isInteger(n) && n >= MIN_CELLS && n <= MAX_CELLS
+const isColors = (v: unknown): v is { warn: number; err: number } => {
+  if (!v || typeof v !== 'object') return false
+  const { warn, err } = v as { warn: unknown; err: unknown }
+  return Number.isInteger(warn) && Number.isInteger(err) && (warn as number) >= 1 && (err as number) <= 100 && (warn as number) < (err as number)
+}
 
 // Итоговый язык: выбор пользователя или язык системы
 const langOf = (setting: LangSetting, system: Lang): Lang => (setting === 'auto' ? system : setting)
@@ -267,8 +304,8 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'limits',
-      description: 'Usage limits bar / Полоска лимитов: show/hide · skin · icons · lang',
-      argumentHint: '[skin [n|name] | icons nerd|off | lang ru|en|auto]',
+      description: 'Usage limits bar / Полоска лимитов: show/hide · skin · icons · lang · width · colors · show · time · debug',
+      argumentHint: '[skin [n|name] | icons nerd|off | lang ru|en|auto | width 4…16 | colors 50 80 | show both|5h|7d | time on|off | debug]',
     })
 
     const at = await $.clock.now()
@@ -283,6 +320,16 @@ export const register: Register = on => {
     await update($, langSetting, () => (isLangSetting(storedLang) ? storedLang : 'auto'))
     const storedSys = await $.store.get(SYS_LANG_KEY)
     await update($, sysLang, () => (storedSys === 'ru' || storedSys === 'en' ? storedSys : 'en'))
+    // Настройки вида: значение из хранилища, если оно корректное, иначе по умолчанию
+    const storedWidth = await $.store.get(WIDTH_KEY)
+    await update($, barWidth, () => (isWidth(storedWidth) ? storedWidth : CELLS))
+    const storedColors = await $.store.get(COLORS_KEY)
+    await update($, colorWarn, () => (isColors(storedColors) ? storedColors.warn : 50))
+    await update($, colorErr, () => (isColors(storedColors) ? storedColors.err : 80))
+    const storedShow = await $.store.get(SHOW_KEY)
+    await update($, showWindows, () => (isShow(storedShow) ? storedShow : 'both'))
+    const storedTime = await $.store.get(TIME_KEY)
+    await update($, showTime, () => storedTime !== 'off')
     let storedSkin = await $.store.get(SKIN_KEY)
     // Выбор, сохранённый под старыми именами, переводим на новые один раз
     if ((await $.store.get(SKIN_SCHEMA_KEY)) !== SKIN_SCHEMA) {
@@ -295,11 +342,15 @@ export const register: Register = on => {
     await update($, skin, () => skinById(typeof storedSkin === 'string' ? storedSkin : undefined).id)
 
     // Формат времени и язык системы читаем в фоне, чтобы не задерживать запуск
-    void loadSystem($).then(async ({ fmt, lang }) => {
-      await update($, timeFmt, () => fmt)
-      await update($, sysLang, () => lang)
-      await $.store.set(SYS_LANG_KEY, lang)
-    })
+    void loadSystem($)
+      .then(async ({ fmt, lang }) => {
+        await update($, timeFmt, () => fmt)
+        await update($, sysLang, () => lang)
+        await $.store.set(SYS_LANG_KEY, lang)
+      })
+      .catch(() => {
+        // сессия закрылась раньше, чем ответила система, — останутся значения по умолчанию
+      })
 
     // Сначала — свежие данные движка, если уже есть
     const usage = await $.session.usage()
@@ -308,23 +359,27 @@ export const register: Register = on => {
       await save($, fresh)
     } else {
       // Иначе — последнее показание из прошлой сессии, помеченное как устаревшее
-      const stored = (await $.store.get(STORE_KEY)) as Limits | undefined
-      if (stored && typeof stored === 'object' && 'at' in stored) {
-        await update($, limits, () => ({ ...stored, isStale: true }))
+      const stored = await $.store.get(STORE_KEY)
+      if (isLimits(stored)) {
+        await update($, limits, () => ({ five: stored.five, week: stored.week, at: stored.at, isStale: true }))
       }
     }
 
     timer?.cancel()
-    // Раз в минуту: пересчитать «сброс через…» и перечитать последние цифры движка
-    // (бесплатный вызов) — подхватывает ответы фоновых агентов и сдвиги меньше пункта
+    // Раз в минуту: обновить «сегодня/завтра» у времени сброса и перечитать последние цифры
+    // движка (бесплатный вызов) — подхватывает ответы фоновых агентов и сдвиги меньше пункта
     timer = $.clock.every(60_000, () => {
-      void $.session.usage().then(u => refresh($, u.rateLimits))
+      void $.session
+        .usage()
+        .then(u => refresh($, u.rateLimits))
+        .catch(() => {
+          // сессия закрывается — следующий замер придёт со следующим ответом
+        })
     })
 
     return next(e)
   })
 
-  // Движок присылает показания после каждого ответа и при сдвиге окна на 1%
   // Цифры берём при каждом замере (после каждого ответа), а не только когда движок
   // отметил «rateLimits»: он отмечает это лишь при сдвиге на целый пункт, и полоска
   // отставала (19% при 19,6% на сервере, а /usage уже показывал 20%)
@@ -343,9 +398,10 @@ export const register: Register = on => {
       const current = await read($, skin)
       const sample = (await read($, limits))?.five?.percent ?? 40
       const query = rest.join(' ')
-      if (!query) return { text: skinsList(current, sample, lang) }
+      const cells = await read($, barWidth)
+      if (!query) return { text: skinsList(current, sample, lang, cells) }
       const chosen = findSkin(query)
-      if (!chosen) return { text: `${t.skinNotFound(query)}\n\n${skinsList(current, sample, lang)}` }
+      if (!chosen) return { text: `${t.skinNotFound(query)}\n\n${skinsList(current, sample, lang, cells)}` }
       await update($, skin, () => chosen.id)
       await $.store.set(SKIN_KEY, chosen.id)
       return { text: t.skinChosen(chosen.id, chosen.title[lang]) }
@@ -371,6 +427,40 @@ export const register: Register = on => {
       await $.store.set(LANG_KEY, mode)
       const chosen = langOf(mode, await read($, sysLang))
       return { text: STRINGS[chosen].langChosen(mode, chosen) }
+    }
+    // /limits width 4…16
+    if (sub.toLowerCase() === 'width') {
+      const n = Number(rest[0])
+      if (!rest[0] || !isWidth(n)) return { text: t.widthState(await read($, barWidth)) }
+      await update($, barWidth, () => n)
+      await $.store.set(WIDTH_KEY, n)
+      return { text: t.widthSet(n) }
+    }
+    // /limits colors <жёлтый> <красный>
+    if (sub.toLowerCase() === 'colors') {
+      if (rest.length === 0) return { text: t.colorsState(await read($, colorWarn), await read($, colorErr)) }
+      const v = { warn: Number(rest[0]), err: Number(rest[1]) }
+      if (!isColors(v)) return { text: t.colorsBad }
+      await update($, colorWarn, () => v.warn)
+      await update($, colorErr, () => v.err)
+      await $.store.set(COLORS_KEY, v)
+      return { text: t.colorsSet(v.warn, v.err) }
+    }
+    // /limits show both|5h|7d
+    if (sub.toLowerCase() === 'show') {
+      const mode = (rest[0] ?? '').toLowerCase()
+      if (!isShow(mode)) return { text: t.showState(t.showNames[await read($, showWindows) as Show]) }
+      await update($, showWindows, () => mode)
+      await $.store.set(SHOW_KEY, mode)
+      return { text: t.showSet(t.showNames[mode]) }
+    }
+    // /limits time on|off
+    if (sub.toLowerCase() === 'time') {
+      const mode = (rest[0] ?? '').toLowerCase()
+      if (mode !== 'on' && mode !== 'off') return { text: t.timeState(await read($, showTime)) }
+      await update($, showTime, () => mode === 'on')
+      await $.store.set(TIME_KEY, mode)
+      return { text: t.timeSet(mode === 'on') }
     }
     // /limits debug — точные значения с десятыми и время получения
     if (sub.toLowerCase() === 'debug') {
@@ -408,6 +498,11 @@ export const register: Register = on => {
     const nerd = await read($, isNerd)
     const lang = langOf(await read($, langSetting), await read($, sysLang))
     const tr = STRINGS[lang]
+    const cells = await read($, barWidth)
+    const warn = await read($, colorWarn)
+    const err = await read($, colorErr)
+    const show = (await read($, showWindows)) as Show
+    const timeOn = await read($, showTime)
 
     if (!data) {
       return (
@@ -445,14 +540,14 @@ export const register: Register = on => {
           ? ` · ${nerd ? NERD.refresh : PLAIN_RESET} ${resetText(w.resetsAt, t, fmt, lang)}`
           : ''
       const tail = withTail ? fullTail : ''
-      const [filled, empty] = barParts(percent, look)
+      const [filled, empty] = barParts(percent, look, cells)
       const pct = ` ${Math.round(percent)}%`
       return {
         width: headText.length + filled.length + empty.length + pct.length + tail.length,
         node: (
           <Text>
             {head}
-            <Text color={colorOf(percent)}>{filled}</Text>
+            <Text color={colorOf(percent, warn, err)}>{filled}</Text>
             <Text color="inactive">{empty}</Text>
             <Text>{pct}</Text>
             <Text dimColor>{tail}</Text>
@@ -466,26 +561,30 @@ export const register: Register = on => {
     const room = (e.props.bodyColumns ?? 200) - 2
     const SEP = ' │ '
     const STALE = `   ${tr.stale}`
+    // Какие окна показывать (/limits show) и со временем сброса ли (/limits time)
+    const windows = [
+      ...(show !== '7d' ? [{ icon: NERD.clock, label: tr.five, w: data.five }] : []),
+      ...(show !== '5h' ? [{ icon: NERD.calendar, label: tr.week, w: data.week }] : []),
+    ]
     const layout = () => {
-      for (const withTail of [true, false]) {
-        const five = cell(NERD.clock, tr.five, data.five, withTail)
-        const week = cell(NERD.calendar, tr.week, data.week, withTail)
-        const width = five.width + SEP.length + week.width
+      for (const withTail of timeOn ? [true, false] : [false]) {
+        const cells = windows.map(x => cell(x.icon, x.label, x.w, withTail))
+        const width = cells.reduce((sum, c) => sum + c.width, 0) + SEP.length * (cells.length - 1)
         if (width <= room) {
           const stale = data.isStale && width + STALE.length <= room
-          return { five, week: week as typeof week | null, stale }
+          return { cells, stale }
         }
       }
-      return { five: cell(NERD.clock, tr.five, data.five, false), week: null, stale: false }
+      // Совсем узко — только первое окно без времени сброса
+      const first = windows[0] as (typeof windows)[number]
+      return { cells: [cell(first.icon, first.label, first.w, false)], stale: false }
     }
     const shown = layout()
 
     return (
       <Box paddingLeft={2}>
-        {shown.five.node}
         {/* Разделитель блоков: «│» — псевдографика, есть во всех стандартных шрифтах */}
-        {shown.week && <Text dimColor>{SEP}</Text>}
-        {shown.week?.node}
+        {shown.cells.map((c, i) => (i === 0 ? c.node : [<Text dimColor>{SEP}</Text>, c.node]))}
         {shown.stale && <Text dimColor>{STALE}</Text>}
       </Box>
     )

@@ -26,7 +26,7 @@ A [Claude Code](https://claude.com/claude-code) plugin that shows your subscript
 What the bar shows:
 - **5h** — usage of the five-hour session;
 - **7d** — usage of the weekly limit;
-- usage percentage — the filled part changes color: green below 50%, yellow from 50% to 80%, red from 80% to 100%;
+- usage percentage — the filled part changes color: green below 50%, yellow from 50% to 80%, red from 80% to 100% (the thresholds can be changed with `/limits colors`);
 - limit reset time — the time when the limit starts over is shown in one of the following formats:
   - "3:10 pm" — if the reset happens today;
   - "tomorrow 2:50 am" — if it happens the next day;
@@ -68,6 +68,10 @@ Type all commands at the Claude Code prompt.
 | `/limits` | Hide or show the bar. The choice is remembered between launches |
 | `/limits skin` | List the skins with a preview; the current one is marked `●` |
 | `/limits skin <number or name>` | Choose a skin, e.g. `/limits skin 4` or `/limits skin blocks` |
+| `/limits width 4…16` | Bar length in cells, e.g. `/limits width 12` (default 8) |
+| `/limits colors <yellow> <red>` | Color thresholds, e.g. `/limits colors 70 90`: green below 70%, yellow below 90%, red above (default 50 and 80) |
+| `/limits show both` / `5h` / `7d` | Which windows to show: both, 5h only or 7d only |
+| `/limits time on` / `off` | Show or hide the reset time |
 | `/limits icons` | Show whether icons are on |
 | `/limits icons nerd` | Turn on Nerd Font icons (clock, calendar, refresh arrow) |
 | `/limits icons off` | Turn icons off |

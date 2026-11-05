@@ -22,7 +22,10 @@ export const SKINS: readonly Skin[] = [
 
 export const DEFAULT_SKIN = 'line'
 
-const CELLS = 8
+// Длина полоски по умолчанию и допустимые границы (/limits width)
+export const CELLS = 8
+export const MIN_CELLS = 4
+export const MAX_CELLS = 16
 
 // Прежние имена скинов (до 0.8.5): segments стал squares, а прежний squares — solid.
 // Набранное в команде прежнее имя segments ведёт на новый squares
@@ -47,20 +50,20 @@ export const skinById = (id: string | undefined): Skin =>
   SKINS.find(s => s.id === id) ?? (SKINS[0] as Skin)
 
 // Делит полоску на заполненную и пустую части
-export const barParts = (percent: number, skin: Skin): [string, string] => {
-  const filled = Math.max(0, Math.min(CELLS, Math.round((percent / 100) * CELLS)))
+export const barParts = (percent: number, skin: Skin, cells = CELLS): [string, string] => {
+  const filled = Math.max(0, Math.min(cells, Math.round((percent / 100) * cells)))
   const gap = skin.gap ?? ''
   const on = Array(filled).fill(skin.filled).join(gap)
-  const off = Array(CELLS - filled).fill(skin.empty).join(gap)
+  const off = Array(cells - filled).fill(skin.empty).join(gap)
   // Промежуток между заполненной и пустой частью относится к заполненной
   return [on + (on && off ? gap : ''), off]
 }
 
 // Список скинов с превью для ответа команды
-export const skinsList = (currentId: string, percent: number, lang: Lang): string => {
+export const skinsList = (currentId: string, percent: number, lang: Lang, cells = CELLS): string => {
   const t = STRINGS[lang]
   // Полоски разной ширины (у сегментов есть промежутки) — выравниваем по самой широкой
-  const bars = SKINS.map(s => barParts(percent, s).join(''))
+  const bars = SKINS.map(s => barParts(percent, s, cells).join(''))
   const width = Math.max(...bars.map(b => b.length))
   const rows = SKINS.map((s, i) => {
     const mark = s.id === currentId ? '●' : ' '

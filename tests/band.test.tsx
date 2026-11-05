@@ -320,3 +320,64 @@ test('перенос выбора: старый squares (слитно) → solid
   expect((await ui.find({ type: 'Text', text: /^■■■$/ }))?.text).toBe('■■■')
   await ui.unmount()
 })
+
+test('настройки вида: длина, пороги цветов, какие окна, время сброса', async ($, on) => {
+  setup(on, 'H:mm')
+  on('command.run', () => ({ text: 'engine' }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await measure($)
+
+  // Длина: 7д 36% при 5 делениях → 2 заполнены, 3 пустых
+  expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'width 20' } as never))).toContain('4…16')
+  await $.command.run({ command: 'limits', args: 'width 5' } as never)
+  let ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /^━━━$/ }))?.text).toBe('━━━')
+  await ui.unmount()
+  await $.command.run({ command: 'limits', args: 'width 8' } as never)
+
+  // Пороги: 30/35 — 36% у недели уже красный
+  expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'colors 90 50' } as never))).toContain('первое меньше')
+  const set = await $.command.run({ command: 'limits', args: 'colors 30 35' } as never)
+  expect(JSON.stringify(set)).toContain('зелёный до 30%, жёлтый до 35%')
+  ui = await $.ui.mount(BAND)
+  const weekBar = await ui.find({ type: 'Text', text: /^━━━$/ })
+  expect(JSON.stringify(weekBar)).toContain('error')
+  await ui.unmount()
+
+  // Только 5ч: нет 7д и разделителя
+  await $.command.run({ command: 'limits', args: 'show 5h' } as never)
+  ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /5ч/ }))?.text).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /7д/ })).toBeFalsy()
+  expect(await ui.find({ type: 'Text', text: /│/ })).toBeFalsy()
+  await ui.unmount()
+
+  // Только 7д
+  await $.command.run({ command: 'limits', args: 'show 7d' } as never)
+  ui = await $.ui.mount(BAND)
+  expect(await ui.find({ type: 'Text', text: /5ч/ })).toBeFalsy()
+  expect((await ui.find({ type: 'Text', text: /7д/ }))?.text).toBeTruthy()
+  await ui.unmount()
+  await $.command.run({ command: 'limits', args: 'show both' } as never)
+
+  // Время сброса скрыто
+  await $.command.run({ command: 'limits', args: 'time off' } as never)
+  ui = await $.ui.mount(BAND)
+  expect(await ui.find({ type: 'Text', text: /↕/ })).toBeFalsy()
+  expect((await ui.find({ type: 'Text', text: /│/ }))?.text).toBeTruthy()
+  await ui.unmount()
+})
+
+test('повреждённые показания в хранилище не ломают полоску; склонение «деления»', async ($, on) => {
+  setup(on, 'H:mm', 'ru-RU', '', { 'last-limits': { five: { percent: 'abc' }, week: 5, at: 'x' } })
+  on('command.run', () => ({ text: 'engine' }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /первого ответа/ }))?.text).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /NaN/ })).toBeFalsy()
+  await ui.unmount()
+
+  expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'width 4' } as never))).toContain('4 деления')
+  expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'width 11' } as never))).toContain('11 делений')
+  expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'width 8' } as never))).toContain('8 делений')
+})
