@@ -340,8 +340,8 @@ test('настройки вида: длина, пороги цветов, как
 
   // Пороги: 30/35 — 36% у недели уже красный
   expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'colors 90 50' } as never))).toContain('первое меньше')
-  const set = await $.command.run({ command: 'limits', args: 'colors 30 35' } as never)
-  expect(JSON.stringify(set)).toContain('зелёный до 30%, жёлтый до 35%')
+  const reply = await $.command.run({ command: 'limits', args: 'colors 30 35' } as never)
+  expect(JSON.stringify(reply)).toContain('зелёный до 30%, жёлтый до 35%')
   ui = await $.ui.mount(BAND)
   const weekBar = await ui.find({ type: 'Text', text: /^━━━$/ })
   expect(JSON.stringify(weekBar)).toContain('error')
