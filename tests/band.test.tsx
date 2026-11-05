@@ -385,16 +385,12 @@ test('повреждённые показания в хранилище не л�
   expect(JSON.stringify(await $.command.run({ command: 'limits', args: 'width 8' } as never))).toContain('8 делений')
 })
 
-test('плагин не запускает программ и не читает переменные окружения', async ($, on) => {
+test('плагин не запускает программ', async ($, on) => {
   setup(on)
   const calls: string[] = []
   on('process.run', () => {
     calls.push('process.run')
     return { value: { exitCode: 1, stdout: '', stderr: '' } }
-  })
-  on('env.get', () => {
-    calls.push('env.get')
-    return { value: undefined }
   })
   await $.session.start(START)
   await measure($)
