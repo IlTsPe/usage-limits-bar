@@ -45,26 +45,22 @@
 
 <p align="center"><img src="docs/commands/ru-width-8.png" alt="/limits width 8" width="648"></p>
 
-**12**
-
-<p align="center"><img src="docs/commands/ru-width-12.png" alt="/limits width 12" width="732"></p>
-
 **16 — самая длинная**
 
 <p align="center"><img src="docs/commands/ru-width-16.png" alt="/limits width 16" width="816"></p>
 
 ## Пороги цветов
-`/limits colors <жёлтый> <красный>` — с какого процента полоска желтеет и краснеет. На всех примерах одни и те же цифры — 5ч 45%, 7д 62% — меняются только пороги.
+`/limits colors <жёлтый> <красный>` — с какого процента полоска желтеет и краснеет. На всех примерах одни и те же цифры — 5ч 45%, 7д 75% — меняются только пороги.
 
-**50 и 80 — по умолчанию: зелёный до 50%, жёлтый до 80%, дальше красный**
+**50 и 80 — по умолчанию: зелёный до 50%, жёлтый до 80%, дальше красный** (45% — зелёный, 75% — жёлтый)
 
 <p align="center"><img src="docs/commands/ru-colors-50-80.png" alt="/limits colors 50 80" width="788"></p>
 
-**70 и 90 — спокойнее: зелёный до 70%, жёлтый до 90%**
+**70 и 90 — спокойнее: зелёный до 70%, жёлтый до 90%, дальше красный** (45% — зелёный, 75% — жёлтый)
 
 <p align="center"><img src="docs/commands/ru-colors-70-90.png" alt="/limits colors 70 90" width="788"></p>
 
-**30 и 60 — строже: жёлтый уже с 30%, красный с 60%**
+**30 и 60 — строже: жёлтый уже с 30%, красный с 60%** (45% — жёлтый, 75% — красный)
 
 <p align="center"><img src="docs/commands/ru-colors-30-60.png" alt="/limits colors 30 60" width="788"></p>
 
@@ -104,7 +100,13 @@
 ## Язык
 `/limits lang ru` / `en` — русский или английский, `/limits lang auto` — по региональным настройкам системы (по умолчанию).
 
-<p align="center"><img src="docs/commands/ru-lang.png" alt="/limits lang en переключает полоску на английский" width="80%"></p>
+**`ru` — русский**
+
+<p align="center"><img src="docs/commands/ru-lang-ru.png" alt="/limits lang ru" width="648"></p>
+
+**`en` — английский**
+
+<p align="center"><img src="docs/commands/ru-lang-en.png" alt="/limits lang en" width="669"></p>
 
 ## Точные значения
 `/limits debug` — проценты, время сброса, когда цифры менялись и когда плагин последний раз их проверял. Удобно, чтобы сверить полоску с `/usage`.
