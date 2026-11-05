@@ -1,7 +1,7 @@
 <p align="center">
   <img src="mascot/banner-ru.jpg" alt="Limits for Claude — маскот: кот в наушниках рядом с карточкой расхода токенов" width="100%">
 </p>
-<h1 align="center">Limits for Claude</h1>
+<h1 align="center">CMD Show Limits</h1>
 
 <p align="center"><b>Русский</b> · <a href="README.en.md">English</a></p>
 
