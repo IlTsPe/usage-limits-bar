@@ -141,6 +141,8 @@ To go back to automatic language detection, type: `/limits lang auto`.
 - The plugin uses the Claude Code plugin API, which is still in early access (the plugin is tested on Claude Code 2.1.318). After major Claude Code updates the plugin may need an update.
 
 ## Update and removal
+What changed in each version: [CHANGELOG.en.md](CHANGELOG.en.md).
+
 Update to the latest version:
 
 ```

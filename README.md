@@ -141,6 +141,8 @@ claude plugin install usage-limits --marketplace IlTsPe/usage-limits-bar
 - Плагин использует API плагинов Claude Code, которое пока находится в раннем доступе (плагин проверен на Claude Code 2.1.318). После крупных обновлений Claude Code может понадобиться обновить плагин.
 
 ## Обновление и удаление
+Что изменилось в каждой версии — в [CHANGELOG.md](CHANGELOG.md).
+
 Обновить до последней версии:
 
 ```
