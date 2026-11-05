@@ -50,13 +50,13 @@ You can also collapse the bar with the Claude Code shortcut **Ctrl+X**, then **C
 <p align="center"><img src="docs/commands/en-width-16.png" alt="/limits width 16" width="837"></p>
 
 ## Color thresholds
-`/limits colors <yellow> <red>` sets the percentage at which the bar turns yellow and red. All examples use the same numbers — 5h 45%, 7d 75% — only the thresholds change.
+`/limits colors <yellow> <red>` sets the percentage at which the bar turns yellow and red. The brackets say what color each window is in the picture.
 
 **50 and 80 — default: green below 50%, yellow below 80%, red above** (45% is green, 75% is yellow)
 
 <p align="center"><img src="docs/commands/en-colors-50-80.png" alt="/limits colors 50 80" width="788"></p>
 
-**70 and 90 — calmer: green below 70%, yellow below 90%, red above** (45% is green, 75% is yellow)
+**70 and 90 — calmer: green below 70%, yellow below 90%, red above** (68% is still green, 85% is still yellow; with the default thresholds they would be yellow and red)
 
 <p align="center"><img src="docs/commands/en-colors-70-90.png" alt="/limits colors 70 90" width="788"></p>
 
