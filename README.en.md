@@ -1,7 +1,7 @@
 <p align="center">
   <img src="mascot/banner-en.jpg" alt="Limits for Claude mascot: a cat in headphones next to a token usage card" width="100%">
 </p>
-<h1 align="center">Limits for Claude</h1>
+<h1 align="center">CMD Show Limits</h1>
 
 <p align="center"><a href="README.md">Русский</a> · <b>English</b></p>
 
