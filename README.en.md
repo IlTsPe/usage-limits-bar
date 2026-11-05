@@ -140,7 +140,7 @@ To go back to automatic language detection, type: `/limits lang auto`.
 - The bar shows usage as of Claude's last reply: the server sends the numbers with the reply, before that reply itself is counted. So it may lag behind `/usage` by 1–2% until the next reply arrives. Usage in other Claude Code windows, on claude.ai and by background agents also shows up only with the next reply in this session.
 - Works when you sign in to Claude Code with a Claude subscription (Pro, Max). With an API key there are no "5 hours / week" limits, so the bar stays empty.
 - The bar shows in Claude Code in a terminal (PowerShell, cmd, Git Bash, the VS Code terminal, Windows Terminal, iTerm2, etc.) and in the desktop app. It does not show in the Claude Code extension panel for VS Code, in the browser or in the mobile app; use `/usage` there.
-- The time zone and time format come from the system region. If you changed the time format by hand in the settings (for example, turned on 12 hours in a 24-hour region), the plugin will not see it — choose the format with `/limits clock`. Tested on Windows; on macOS and Linux it works the same way but has been checked only by tests.
+- The time zone and time format come from the system region. If you changed the time format by hand in the settings (for example, turned on 12 hours in a 24-hour region), the plugin will not see it — choose the format with `/limits clock`. Tested on Windows; on macOS and Linux the plugin works the same way but has not been tested there.
 - The plugin uses the Claude Code plugin API, which is still in early access (the plugin is tested on Claude Code 2.1.318). After major Claude Code updates the plugin may need an update.
 
 ## Update and removal

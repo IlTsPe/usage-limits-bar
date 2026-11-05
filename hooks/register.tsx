@@ -102,9 +102,9 @@ const isLangSetting = (v: unknown): v is LangSetting => v === 'auto' || v === 'r
 
 const HOUR = 3_600_000
 
-// Смещение от UTC (минуты), действующее в момент ts: по почасовой таблице из Windows,
+// Смещение от UTC (минуты), действующее в момент ts: по почасовой таблице из readSystem,
 // чтобы переход на летнее/зимнее время между «сейчас» и сбросом не сдвигал время на час.
-// Вне таблицы (не Windows или сессия дольше 8 суток) — смещение на момент запуска
+// Вне таблицы (сессия дольше 8 суток) — смещение на момент запуска
 export const offsetAt = (fmt: TimeFormat, ts: number): number => {
   const tz = fmt.offsets
   if (!tz) return fmt.offsetMin
@@ -358,7 +358,7 @@ export const register: Register = on => {
       await $.store.set(CLOCK_KEY, mode)
       return { text: t.clockSet(mode) }
     }
-    // /limits debug — точные значения с десятыми и время получения
+    // /limits debug — точные значения и когда они получены
     if (sub.toLowerCase() === 'debug') {
       const data = await read($, limits)
       const fmt = withClock((await read($, timeFmt)) ?? fallbackFormat(), (await read($, clockSetting)) as Clock)
@@ -464,23 +464,23 @@ export const register: Register = on => {
     ]
     const layout = () => {
       for (const withTail of timeOn ? [true, false] : [false]) {
-        const cells = windows.map(x => cell(x.icon, x.label, x.w, withTail))
-        const width = cells.reduce((sum, c) => sum + c.width, 0) + SEP.length * (cells.length - 1)
+        const parts = windows.map(x => cell(x.icon, x.label, x.w, withTail))
+        const width = parts.reduce((sum, c) => sum + c.width, 0) + SEP.length * (parts.length - 1)
         if (width <= room) {
           const stale = data.isStale && width + STALE.length <= room
-          return { cells, stale }
+          return { parts, stale }
         }
       }
       // Совсем узко — только первое окно без времени сброса
       const first = windows[0] as (typeof windows)[number]
-      return { cells: [cell(first.icon, first.label, first.w, false)], stale: false }
+      return { parts: [cell(first.icon, first.label, first.w, false)], stale: false }
     }
     const shown = layout()
 
     return (
       <Box paddingLeft={2}>
         {/* Разделитель блоков: «│» — псевдографика, есть во всех стандартных шрифтах */}
-        {shown.cells.map((c, i) => (i === 0 ? c.node : [<Text dimColor>{SEP}</Text>, c.node]))}
+        {shown.parts.map((c, i) => (i === 0 ? c.node : [<Text dimColor>{SEP}</Text>, c.node]))}
         {shown.stale && <Text dimColor>{STALE}</Text>}
       </Box>
     )

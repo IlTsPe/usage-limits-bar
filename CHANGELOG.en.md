@@ -2,6 +2,10 @@
 
 <p align="center"><a href="CHANGELOG.md">Русский</a> · <b>English</b> · <a href="README.en.md">← back to the plugin overview</a></p>
 
+## 0.9.4 — November 6, 2026
+- The `/limits lang auto` reply now says the language follows the system region.
+- README: clarified on which systems the plugin was tested.
+
 ## 0.9.3 — November 5, 2026
 - The plugin no longer runs PowerShell or sh: region, language, time zone and time format come from built-in system facilities.
 - New `/limits clock 12|24|auto` command to choose 12 or 24 hours manually.

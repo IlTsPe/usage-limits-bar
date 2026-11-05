@@ -1,6 +1,6 @@
 // Тексты плагина на русском и английском
 export type Lang = 'ru' | 'en'
-// Настройка языка: авто — по языку системы
+// Настройка языка: авто — по региону системы
 export type LangSetting = 'auto' | Lang
 
 export const LANGS: readonly Lang[] = ['ru', 'en']
@@ -107,7 +107,7 @@ export const STRINGS: Record<Lang, Strings> = {
     langState: (setting, lang) =>
       `Язык: ${setting === 'auto' ? `авто (${lang})` : lang}. Сменить: /limits lang ru|en|auto.`,
     langChosen: (setting, lang) =>
-      setting === 'auto' ? `Язык: авто, по языку системы (${lang}).` : 'Язык: русский.',
+      setting === 'auto' ? `Язык: авто, по региону системы (${lang}).` : 'Язык: русский.',
   },
   en: {
     five: '5h',
@@ -154,6 +154,6 @@ export const STRINGS: Record<Lang, Strings> = {
     langState: (setting, lang) =>
       `Language: ${setting === 'auto' ? `auto (${lang})` : lang}. Change: /limits lang ru|en|auto.`,
     langChosen: (setting, lang) =>
-      setting === 'auto' ? `Language: auto, from the system language (${lang}).` : 'Language: English.',
+      setting === 'auto' ? `Language: auto, from the system region (${lang}).` : 'Language: English.',
   },
 }
