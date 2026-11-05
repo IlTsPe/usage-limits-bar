@@ -2,13 +2,15 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, SessionRateLimit } from 'claude-code'
 
 import type { Limits, TimeFormat, Window } from '../types'
-import { DEFAULT_SKIN, barParts, findSkin, skinById, skinsList } from './skins'
+import { DEFAULT_SKIN, SKIN_SCHEMA, barParts, findSkin, migrateSkinId, skinById, skinsList } from './skins'
 import { STRINGS, langFromLocale } from './i18n'
 import type { Lang, LangSetting } from './i18n'
 
 const STORE_KEY = 'last-limits'
 const HIDDEN_KEY = 'hidden'
 const SKIN_KEY = 'skin'
+// Версия имён скинов в хранилище: до 2 — старые имена (segments, squares)
+const SKIN_SCHEMA_KEY = 'skin-schema'
 const ICONS_KEY = 'icons'
 const LANG_KEY = 'lang'
 // Последний язык системы — чтобы при запуске сразу показать нужный язык
@@ -281,7 +283,15 @@ export const register: Register = on => {
     await update($, langSetting, () => (isLangSetting(storedLang) ? storedLang : 'auto'))
     const storedSys = await $.store.get(SYS_LANG_KEY)
     await update($, sysLang, () => (storedSys === 'ru' || storedSys === 'en' ? storedSys : 'en'))
-    const storedSkin = await $.store.get(SKIN_KEY)
+    let storedSkin = await $.store.get(SKIN_KEY)
+    // Выбор, сохранённый под старыми именами, переводим на новые один раз
+    if ((await $.store.get(SKIN_SCHEMA_KEY)) !== SKIN_SCHEMA) {
+      if (typeof storedSkin === 'string') {
+        storedSkin = migrateSkinId(storedSkin)
+        await $.store.set(SKIN_KEY, storedSkin)
+      }
+      await $.store.set(SKIN_SCHEMA_KEY, SKIN_SCHEMA)
+    }
     await update($, skin, () => skinById(typeof storedSkin === 'string' ? storedSkin : undefined).id)
 
     // Формат времени и язык системы читаем в фоне, чтобы не задерживать запуск

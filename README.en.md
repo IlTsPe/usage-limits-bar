@@ -38,6 +38,7 @@ What the bar shows:
 
 The bar updates on its own after every Claude reply. At startup, before the first reply, it shows the last known numbers marked "(last session)".
 
+
 In a narrow terminal window the bar shortens itself: first it drops the reset time, and if there is still not enough room, the week block.
 
 ## Installation
@@ -80,9 +81,9 @@ You can also collapse the bar with the Claude Code shortcut **Ctrl+X**, then **C
 ## Skins
 A skin changes how the bar looks. All skins work with the standard fonts of Windows, macOS and Linux.
 
-<p align="center"><img src="docs/skins.png" alt="Six bar skins: line, segments, double, blocks, squares, dots" width="40%"></p>
+<p align="center"><img src="docs/skins.png" alt="Six bar skins: line, squares, double, blocks, solid, dots" width="40%"></p>
 
-The look depends on the terminal font: for example, in the standard Windows console the squares of the `squares` skin have small gaps between them.
+The look depends on the terminal font: for example, in the standard Windows console the squares of the `solid` skin have small gaps between them.
 
 ## Icons
 By default the plugin uses only characters that every font has. For nicer icons (a clock, a calendar and a refresh arrow) you need a font from the [Nerd Fonts](https://www.nerdfonts.com/) family.
@@ -129,6 +130,7 @@ To choose the language manually, use these commands:
 To go back to automatic language detection, type: `/limits lang auto`.
 
 ## Limitations
+- The bar shows usage as of Claude's last reply: the server sends the numbers with the reply, before that reply itself is counted. So it may lag behind `/usage` by 1–2% until the next reply arrives. Usage in other Claude Code windows, on claude.ai and by background agents also shows up only with the next reply in this session.
 - Works when you sign in to Claude Code with a Claude subscription (Pro, Max). With an API key there are no "5 hours / week" limits, so the bar stays empty.
 - The bar shows in Claude Code in a terminal (PowerShell, cmd, Git Bash, the VS Code terminal, Windows Terminal, iTerm2, etc.) and in the desktop app. It does not show in the Claude Code extension panel for VS Code, in the browser or in the mobile app; use `/usage` there.
 - The time format (12 or 24 hours) and the time zone come from the system settings. Tested on Windows; on macOS and Linux it works by the same rules but has been checked only by tests.

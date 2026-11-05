@@ -13,10 +13,10 @@ export type Skin = {
 
 export const SKINS: readonly Skin[] = [
   { id: 'line', title: { ru: 'толстая линия', en: 'thick line' }, filled: '━', empty: '━' },
-  { id: 'segments', title: { ru: 'сегменты', en: 'segments' }, filled: '■', empty: '■', gap: ' ' },
+  { id: 'squares', title: { ru: 'квадраты', en: 'squares' }, filled: '■', empty: '■', gap: ' ' },
   { id: 'double', title: { ru: 'двойная линия', en: 'double line' }, filled: '═', empty: '═' },
   { id: 'blocks', title: { ru: 'блоки', en: 'blocks' }, filled: '█', empty: '░' },
-  { id: 'squares', title: { ru: 'квадраты', en: 'squares' }, filled: '■', empty: '■' },
+  { id: 'solid', title: { ru: 'сплошные квадраты', en: 'solid squares' }, filled: '■', empty: '■' },
   { id: 'dots', title: { ru: 'точки', en: 'dots' }, filled: '•', empty: '·' },
 ]
 
@@ -24,13 +24,23 @@ export const DEFAULT_SKIN = 'line'
 
 const CELLS = 8
 
+// Прежние имена скинов (до 0.8.5): segments стал squares, а прежний squares — solid.
+// Набранное в команде прежнее имя segments ведёт на новый squares
+const ALIASES: Record<string, string> = { segments: 'squares' }
+
+// Перенос сохранённого выбора со старых имён (версия схемы 1) на новые (2)
+export const SKIN_SCHEMA = 2
+export const migrateSkinId = (id: string): string =>
+  id === 'segments' ? 'squares' : id === 'squares' ? 'solid' : id
+
 // Ищет скин по номеру (с 1) или по id; неизвестный — null
 export const findSkin = (query: string): Skin | null => {
   const q = query.trim().toLowerCase()
   if (!q) return null
   const n = Number(q)
   if (Number.isInteger(n)) return SKINS[n - 1] ?? null
-  return SKINS.find(s => s.id === q) ?? null
+  const id = ALIASES[q] ?? q
+  return SKINS.find(s => s.id === id) ?? null
 }
 
 export const skinById = (id: string | undefined): Skin =>

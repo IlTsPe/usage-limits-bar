@@ -17,11 +17,17 @@ const RATE_LIMITS = [
   { kind: 'seven_day', percentUsed: 36, resetsAt: '2026-11-07T14:00:00Z' },
 ]
 
-const setup = (on: Parameters<Parameters<typeof test>[1]>[1], pattern: string, ui = 'ru-RU', extra = '') => {
+const setup = (
+  on: Parameters<Parameters<typeof test>[1]>[1],
+  pattern: string,
+  ui = 'ru-RU',
+  extra = '',
+  stored: Record<string, unknown> = {},
+) => {
   on('command.register', () => ({ value: { command: 'limits' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: NOW, context: {}, rateLimits: [] } }))
-  on('store.get', () => ({ value: undefined }))
+  on('store.get', (_, e) => ({ value: stored[(e as { key: string }).key] }))
   on('store.set', () => ({ value: undefined }))
   on('clock.now', () => ({ value: NOW }))
   on('clock.every', () => ({ value: { cancel: () => {} } }))
@@ -238,7 +244,7 @@ test('Linux, ru_RU: 24 часа с ведущим нулём по locale, рус
   await ui.unmount()
 })
 
-test('скин segments: квадратики через пробел, второй в списке', async ($, on) => {
+test('скин squares: квадратики через пробел, второй в списке', async ($, on) => {
   setup(on, 'H:mm')
   on('command.run', () => ({ text: 'engine' }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
@@ -246,7 +252,9 @@ test('скин segments: квадратики через пробел, втор�
 
   const list = await $.command.run({ command: 'limits', args: 'skin' } as never)
   expect(JSON.stringify(list)).toContain('2  ')
-  expect(JSON.stringify(list)).toContain('segments')
+  expect(JSON.stringify(list)).toContain('squares — квадраты')
+  expect(JSON.stringify(list)).toContain('solid — сплошные квадраты')
+  expect(JSON.stringify(list)).not.toContain('segments')
   expect(JSON.stringify(list)).not.toContain('thin')
 
   await $.command.run({ command: 'limits', args: 'skin 2' } as never)
@@ -281,4 +289,34 @@ test('цифры обновляются при каждом замере, даж
   const dbg = await $.command.run({ command: 'limits', args: 'debug' } as never)
   expect(JSON.stringify(dbg)).toContain('19.6%')
   expect(JSON.stringify(dbg)).toContain('проверены')
+})
+
+test('перенос выбора со старых имён: segments → squares, старый squares → solid, alias', async ($, on) => {
+  // В хранилище — выбор под старым именем segments, версии схемы ещё нет
+  setup(on, 'H:mm', 'ru-RU', '', { skin: 'segments' })
+  on('command.run', () => ({ text: 'engine' }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await measure($)
+  let ui = await $.ui.mount(BAND)
+  // Вид прежний — квадратики через пробел (7д 36% → 3 из 8)
+  expect((await ui.find({ type: 'Text', text: /^■ ■ ■ $/ }))?.text).toBe('■ ■ ■ ')
+  await ui.unmount()
+
+  // Старое имя в команде ведёт на новый squares
+  const r = await $.command.run({ command: 'limits', args: 'skin segments' } as never)
+  expect(JSON.stringify(r)).toContain('squares — квадраты')
+  // solid — слитные квадраты
+  await $.command.run({ command: 'limits', args: 'skin solid' } as never)
+  ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /^■■■$/ }))?.text).toBe('■■■')
+  await ui.unmount()
+})
+
+test('перенос выбора: старый squares (слитно) → solid, вид не меняется', async ($, on) => {
+  setup(on, 'H:mm', 'ru-RU', '', { skin: 'squares' })
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await measure($)
+  const ui = await $.ui.mount(BAND)
+  expect((await ui.find({ type: 'Text', text: /^■■■$/ }))?.text).toBe('■■■')
+  await ui.unmount()
 })
