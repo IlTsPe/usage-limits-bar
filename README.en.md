@@ -134,7 +134,12 @@ To choose the language manually, use these commands:
 To go back to automatic language detection, type: `/limits lang auto`.
 
 ## Limitations
-- At startup the plugin calls PowerShell (Windows) or sh (macOS, Linux) once to read the time zone, time format and region. The plugin sends nothing over the network and stores only its own settings.
+- At startup the plugin runs one program once to read the system time zone, time format and region:
+  - Windows — PowerShell (`powershell -NoProfile -NonInteractive -Command …`): region settings (`Get-Culture`) and the time zone offset for the next 8 days;
+  - macOS and Linux — `sh`: the `uname`, `date`, `locale` commands, and on macOS `defaults read` (Language & Region settings).
+
+  Both commands are fixed text in `hooks/register.tsx`. The plugin sends nothing over the network, reads no files or environment variables, and stores only its own settings in the Claude Code storage.
+- What the plugin does in Claude Code: handles its own `/limits` command (other commands are untouched), receives the limit numbers from Claude Code after every reply, and draws the bar above the prompt.
 - The bar shows usage as of Claude's last reply: the server sends the numbers with the reply, before that reply itself is counted. So it may lag behind `/usage` by 1–2% until the next reply arrives. Usage in other Claude Code windows, on claude.ai and by background agents also shows up only with the next reply in this session.
 - Works when you sign in to Claude Code with a Claude subscription (Pro, Max). With an API key there are no "5 hours / week" limits, so the bar stays empty.
 - The bar shows in Claude Code in a terminal (PowerShell, cmd, Git Bash, the VS Code terminal, Windows Terminal, iTerm2, etc.) and in the desktop app. It does not show in the Claude Code extension panel for VS Code, in the browser or in the mobile app; use `/usage` there.

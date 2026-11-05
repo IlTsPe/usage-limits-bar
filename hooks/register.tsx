@@ -116,17 +116,18 @@ export const resetText = (resetsAt: number, nowMs: number, fmt: TimeFormat, lang
   const t = STRINGS[lang]
   const at = new Date(resetsAt + offsetAt(fmt, resetsAt) * 60_000)
   const today = new Date(nowMs + offsetAt(fmt, nowMs) * 60_000)
-  const h = at.getUTCHours()
-  const m = at.getUTCMinutes()
-  const mm = String(m).padStart(2, '0')
+  // Не «h»: в .tsx это имя занято — в него компилируется разметка JSX
+  const hour = at.getUTCHours()
+  const minute = at.getUTCMinutes()
+  const mm = String(minute).padStart(2, '0')
 
   let time: string
   if (fmt.is24h) {
-    time = `${fmt.isPadded ? String(h).padStart(2, '0') : h}:${mm}`
+    time = `${fmt.isPadded ? String(hour).padStart(2, '0') : hour}:${mm}`
   } else {
-    const h12 = h % 12 || 12
-    const hh = fmt.isPadded ? String(h12).padStart(2, '0') : String(h12)
-    time = t.time12(hh, mm, m, h)
+    const hour12 = hour % 12 || 12
+    const hh = fmt.isPadded ? String(hour12).padStart(2, '0') : String(hour12)
+    time = t.time12(hh, mm, minute, hour)
   }
 
   // Разница в календарных днях по местному времени
@@ -172,28 +173,6 @@ export const parseUiLang = (stdout: string): Lang | null => {
   return ui ? langFromLocale(ui) : null
 }
 
-// Скрипт для macOS и Linux: система, регион, настройки 12/24 часов и смещения от UTC
-// на каждый час ближайших 8 суток (как в Windows) — строки «ключ=значение»
-const UNIX_PROBE = [
-  'os=$(uname -s); now=$(date +%s); base=$((now - now % 3600))',
-  'echo "os=$os"; echo "base=$base"',
-  'if [ "$os" = Darwin ]; then',
-  '  echo "loc=$(defaults read -g AppleLocale 2>/dev/null)"',
-  '  echo "f24=$(defaults read -g AppleICUForce24HourTime 2>/dev/null)"',
-  '  echo "f12=$(defaults read -g AppleICUForce12HourTime 2>/dev/null)"',
-  'else',
-  '  echo "loc=${LC_ALL:-${LC_TIME:-$LANG}}"',
-  '  echo "tfmt=$(locale t_fmt 2>/dev/null)"',
-  'fi',
-  'zs=""',
-  'if date -d @0 +%z >/dev/null 2>&1; then',
-  '  zs=$(i=0; while [ $i -le 192 ]; do echo "@$((base + i * 3600))"; i=$((i + 1)); done | date -f - +%z | tr "\\n" ",")',
-  'else',
-  '  i=0; while [ $i -le 192 ]; do zs="$zs$(date -r $((base + i * 3600)) +%z),"; i=$((i + 1)); done',
-  'fi',
-  'echo "zs=$zs"',
-].join('\n')
-
 // Страны, где по умолчанию 12-часовой формат (если пользователь не задал явно)
 const TWELVE_HOUR_REGIONS = new Set(['US', 'CA', 'AU', 'NZ', 'IN', 'PH', 'PK', 'BD', 'EG', 'SA'])
 
@@ -205,7 +184,7 @@ export const zoneToMinutes = (z: string): number | null => {
   return m[1] === '-' ? -v : v
 }
 
-// Разбирает вывод UNIX_PROBE
+// Разбирает вывод скрипта sh из loadSystem
 export const parseUnix = (stdout: string): { fmt: TimeFormat; lang: Lang } | null => {
   const kv: Record<string, string> = {}
   for (const line of stdout.split(/\r?\n/)) {
@@ -237,25 +216,25 @@ export const parseUnix = (stdout: string): { fmt: TimeFormat; lang: Lang } | nul
   return { fmt, lang: langFromLocale(loc) }
 }
 
-// Читает формат времени, часовой пояс и язык: Windows — через PowerShell,
-// macOS и Linux — через sh; если не вышло — язык из LANG, формат по умолчанию
+// Язык по умолчанию, если система не ответила: локаль среды выполнения (без чтения переменных окружения)
+const runtimeLang = (): Lang => {
+  try {
+    return langFromLocale(Intl.DateTimeFormat().resolvedOptions().locale)
+  } catch {
+    return 'en'
+  }
+}
+
+// Читает формат времени, часовой пояс и язык. Обе команды — неизменный текст, без данных
+// пользователя; описаны в README («Ограничения»). Ничего не отправляют в сеть.
+// Windows — PowerShell, строки вывода: формат времени; смещение от UTC сейчас; регион;
+// начало таблицы (мс UTC, ровный час); смещения на каждый час ближайших 8 суток.
+// macOS и Linux — sh, строки «ключ=значение»: система, начало таблицы, регион,
+// настройки 12/24 часов, смещения на каждый час ближайших 8 суток.
 async function loadSystem($: EngineInterface): Promise<{ fmt: TimeFormat; lang: Lang }> {
   try {
     const { exitCode, stdout } = await $.process.run(
-      [
-        'powershell',
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        // Строки: формат времени; смещение сейчас; регион; начало таблицы (мс UTC, ровный час);
-        // смещения на каждый час ближайших 8 суток
-        '(Get-Culture).DateTimeFormat.ShortTimePattern; ' +
-          '[int][TimeZoneInfo]::Local.GetUtcOffset([DateTime]::UtcNow).TotalMinutes; ' +
-          '(Get-Culture).Name; ' +
-          '$b = [DateTime]::UtcNow; $b = $b.AddTicks(-($b.Ticks % 36000000000)); ' +
-          '[long]($b - [DateTime]::new(1970, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)).TotalMilliseconds; ' +
-          "((0..192) | ForEach-Object { [int][TimeZoneInfo]::Local.GetUtcOffset($b.AddHours($_)).TotalMinutes }) -join ','",
-      ],
+      ['powershell', '-NoProfile', '-NonInteractive', '-Command', '(Get-Culture).DateTimeFormat.ShortTimePattern; [int][TimeZoneInfo]::Local.GetUtcOffset([DateTime]::UtcNow).TotalMinutes; (Get-Culture).Name; $b = [DateTime]::UtcNow; $b = $b.AddTicks(-($b.Ticks % 36000000000)); [long]($b - [DateTime]::new(1970, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)).TotalMilliseconds; ((0..192) | ForEach-Object { [int][TimeZoneInfo]::Local.GetUtcOffset($b.AddHours($_)).TotalMinutes }) -join \',\''],
       { timeoutMs: 10_000 },
     )
     if (exitCode === 0) {
@@ -267,9 +246,11 @@ async function loadSystem($: EngineInterface): Promise<{ fmt: TimeFormat; lang: 
   } catch {
     // не Windows или PowerShell недоступен
   }
-  // macOS и Linux
   try {
-    const { exitCode, stdout } = await $.process.run(['sh', '-c', UNIX_PROBE], { timeoutMs: 10_000 })
+    const { exitCode, stdout } = await $.process.run(
+      ['sh', '-c', 'os=$(uname -s); now=$(date +%s); base=$((now - now % 3600))\necho "os=$os"; echo "base=$base"\nif [ "$os" = Darwin ]; then\n  echo "loc=$(defaults read -g AppleLocale 2>/dev/null)"\n  echo "f24=$(defaults read -g AppleICUForce24HourTime 2>/dev/null)"\n  echo "f12=$(defaults read -g AppleICUForce12HourTime 2>/dev/null)"\nelse\n  echo "loc=${LC_ALL:-${LC_TIME:-$LANG}}"\n  echo "tfmt=$(locale t_fmt 2>/dev/null)"\nfi\nzs=""\nif date -d @0 +%z >/dev/null 2>&1; then\n  zs=$(i=0; while [ $i -le 192 ]; do echo "@$((base + i * 3600))"; i=$((i + 1)); done | date -f - +%z | tr "\\n" ",")\nelse\n  i=0; while [ $i -le 192 ]; do zs="$zs$(date -r $((base + i * 3600)) +%z),"; i=$((i + 1)); done\nfi\necho "zs=$zs"'],
+      { timeoutMs: 10_000 },
+    )
     if (exitCode === 0) {
       const unix = parseUnix(stdout)
       if (unix) return unix
@@ -277,7 +258,7 @@ async function loadSystem($: EngineInterface): Promise<{ fmt: TimeFormat; lang: 
   } catch {
     // нет sh
   }
-  return { fmt: fallbackFormat(), lang: langFromLocale(await $.env.get('LANG')) }
+  return { fmt: fallbackFormat(), lang: runtimeLang() }
 }
 
 // Те же цифры, что уже показаны: окна совпадают по проценту и времени сброса
