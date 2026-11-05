@@ -9,6 +9,17 @@
   "homepage": "https://github.com/IlTsPe/usage-limits-bar",
   "repository": "https://github.com/IlTsPe/usage-limits-bar",
   "license": "MIT",
+  "keywords": [
+    "usage",
+    "limits",
+    "rate-limits",
+    "usage-limits",
+    "statusline",
+    "status-bar",
+    "subscription",
+    "monitoring",
+    "claude-code"
+  ],
   "icon": "./.claude-plugin/icon.png",
   "types": "./types/index.d.ts"
 }
