@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="mascot/banner-en.jpg" alt="Limits for Claude mascot: a cat in headphones next to a token usage card" width="100%">
+  <img src="mascot/banner-en.jpg" alt="Usage Limits Bar mascot: a cat in headphones next to a token usage card" width="100%">
 </p>
-<h1 align="center">CMD Show Limits</h1>
+<h1 align="center">Usage Limits Bar</h1>
 
 <p align="center"><a href="README.md">Русский</a> · <b>English</b></p>
 
@@ -46,7 +46,7 @@ In a narrow terminal window the bar shortens itself: first it drops the reset ti
 At the Claude Code prompt:
 
 ```
-/plugin install usage-limits --marketplace IlTsPe/limits-for-claude
+/plugin install usage-limits --marketplace IlTsPe/usage-limits-bar
 ```
 
 Answer `y` to `Add marketplace?`, then pick the install scope (the default is your user, i.e. every project) and press Enter.
@@ -54,10 +54,10 @@ Answer `y` to `Add marketplace?`, then pick the install scope (the default is yo
 From a regular terminal, the same in one command:
 
 ```
-claude plugin install usage-limits --marketplace IlTsPe/limits-for-claude
+claude plugin install usage-limits --marketplace IlTsPe/usage-limits-bar
 ```
 
-In the Claude desktop app: "+" next to the prompt → Plugins → Add marketplace → `IlTsPe/limits-for-claude` → Add plugin.
+In the Claude desktop app: "+" next to the prompt → Plugins → Add marketplace → `IlTsPe/usage-limits-bar` → Add plugin.
 
 ## Commands
 Type all commands at the Claude Code prompt.
@@ -137,7 +137,7 @@ To go back to automatic language detection, type: `/limits lang auto`.
 Update to the latest version:
 
 ```
-claude plugin update usage-limits@limits-for-claude
+claude plugin update usage-limits@usage-limits-bar
 ```
 
 Restart Claude Code after the update.
@@ -145,15 +145,23 @@ Restart Claude Code after the update.
 Remove:
 
 ```
-claude plugin uninstall usage-limits@limits-for-claude
+claude plugin uninstall usage-limits@usage-limits-bar
 ```
 
 ## Support the project
 The plugin is free. If it helps you and you want to thank the author, support the project on [DonationAlerts](https://www.donationalerts.com/r/pegasusil). It helps keep the plugin going and make new ones.
 
-Found a bug or have an idea? Open an [issue](https://github.com/IlTsPe/limits-for-claude/issues).
+Found a bug or have an idea? Open an [issue](https://github.com/IlTsPe/usage-limits-bar/issues).
 
 ## License
-© 2026 Ilya Tsygankov, all rights reserved. You may install and use the plugin for free; you may not sell it or modified versions of it. See [LICENSE](LICENSE) for details.
+© 2026 Ilya Tsygankov. The plugin is distributed under the [PolyForm Shield 1.0.0](LICENSE) license:
+
+- anyone may install and use it for free, at home and at work;
+- you may change the code, make your own versions and send fixes;
+- you may not sell the plugin or modified versions of it, or build a competing product on it — even a free one.
+
+By sending a fix (pull request), you agree that it is distributed under the same terms.
+
+Full text: [LICENSE](LICENSE).
 
 Claude and Claude Code are Anthropic products. This plugin is an independent project and is not affiliated with Anthropic.

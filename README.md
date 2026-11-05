@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="mascot/banner-ru.jpg" alt="Limits for Claude — маскот: кот в наушниках рядом с карточкой расхода токенов" width="100%">
+  <img src="mascot/banner-ru.jpg" alt="Usage Limits Bar — маскот: кот в наушниках рядом с карточкой расхода токенов" width="100%">
 </p>
-<h1 align="center">CMD Show Limits</h1>
+<h1 align="center">Usage Limits Bar</h1>
 
 <p align="center"><b>Русский</b> · <a href="README.en.md">English</a></p>
 
@@ -46,7 +46,7 @@
 В поле ввода Claude Code:
 
 ```
-/plugin install usage-limits --marketplace IlTsPe/limits-for-claude
+/plugin install usage-limits --marketplace IlTsPe/usage-limits-bar
 ```
 
 На вопрос `Add marketplace?` ответьте `y`, затем выберите область установки (по умолчанию — для пользователя, то есть во всех проектах) и нажмите Enter.
@@ -54,10 +54,10 @@
 Из обычного терминала то же самое делается одной командой:
 
 ```
-claude plugin install usage-limits --marketplace IlTsPe/limits-for-claude
+claude plugin install usage-limits --marketplace IlTsPe/usage-limits-bar
 ```
 
-В десктоп-приложении Claude: «+» рядом с полем ввода → Plugins → Add marketplace → `IlTsPe/limits-for-claude` → Add plugin.
+В десктоп-приложении Claude: «+» рядом с полем ввода → Plugins → Add marketplace → `IlTsPe/usage-limits-bar` → Add plugin.
 
 ## Команды
 Все команды вводятся в поле ввода Claude Code.
@@ -137,7 +137,7 @@ claude plugin install usage-limits --marketplace IlTsPe/limits-for-claude
 Обновить до последней версии:
 
 ```
-claude plugin update usage-limits@limits-for-claude
+claude plugin update usage-limits@usage-limits-bar
 ```
 
 После обновления перезапустите Claude Code.
@@ -145,15 +145,23 @@ claude plugin update usage-limits@limits-for-claude
 Удалить:
 
 ```
-claude plugin uninstall usage-limits@limits-for-claude
+claude plugin uninstall usage-limits@usage-limits-bar
 ```
 
 ## Поддержать проект
 Плагин бесплатный. Если он вам пригодился и хочется сказать спасибо автору — поддержите проект на [DonationAlerts](https://www.donationalerts.com/r/pegasusil). Это помогает развивать плагин и делать новые.
 
-Нашли ошибку или есть идея — откройте [issue](https://github.com/IlTsPe/limits-for-claude/issues).
+Нашли ошибку или есть идея — откройте [issue](https://github.com/IlTsPe/usage-limits-bar/issues).
 
 ## Права
-© 2026 Илья Цыганков, все права защищены. Бесплатно устанавливать и использовать плагин можно, продавать его и его изменённые версии — нет. Подробнее — в файле [LICENSE](LICENSE).
+© 2026 Илья Цыганков. Плагин распространяется по лицензии [PolyForm Shield 1.0.0](LICENSE):
+
+- устанавливать и пользоваться бесплатно можно всем — дома и на работе;
+- изменять код, делать свои версии и присылать исправления можно;
+- продавать плагин или его изменённые версии и делать на его основе конкурирующий продукт нельзя — даже бесплатный.
+
+Присылая исправление (pull request), вы соглашаетесь, что оно распространяется на тех же условиях.
+
+Полный текст — в файле [LICENSE](LICENSE) (на английском).
 
 Claude и Claude Code — продукты Anthropic. Плагин — независимый проект и не связан с Anthropic.

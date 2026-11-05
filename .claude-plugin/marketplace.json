@@ -1,5 +1,5 @@
 {
-  "name": "limits-for-claude",
+  "name": "usage-limits-bar",
   "description": "Плагины Claude Code от Ильи Цыганкова",
   "owner": { "name": "Ilya Tsygankov" },
   "plugins": [

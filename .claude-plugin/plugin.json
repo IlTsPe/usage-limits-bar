@@ -3,8 +3,8 @@
   "version": "0.7.0",
   "description": "Полоска над промптом: расход 5-часовой сессии и недельного лимита в реальном времени",
   "author": { "name": "Ilya Tsygankov" },
-  "homepage": "https://github.com/IlTsPe/limits-for-claude",
-  "repository": "https://github.com/IlTsPe/limits-for-claude",
+  "homepage": "https://github.com/IlTsPe/usage-limits-bar",
+  "repository": "https://github.com/IlTsPe/usage-limits-bar",
   "icon": "./.claude-plugin/icon.png",
   "types": "./types/index.d.ts"
 }
